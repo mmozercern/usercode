@@ -43,7 +43,7 @@ RooDataSet* TreeLoader::getevents(int n,RooRealVar &var){
   for(int i = neventsused ; i < neventsused + n ; i++){
     tree->GetEntry(i);
     var.setVal(mass);
-    std::cout << mass << std::endl;
+    //std::cout << mass << std::endl;
     returnpointer->add(var);
   }
   neventsused+=n;

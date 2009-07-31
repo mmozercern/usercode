@@ -5,7 +5,7 @@
 
 using namespace RooFit;
 
-Model::Model(int effo,int masso,bool fitm): // constructor sets up PDF's to reflect constraints
+Model::Model(int effo,int masso,bool fitm,bool fitw): // constructor sets up PDF's to reflect constraints
   //effoption: 1-fixed 2-free 3-contrained 4-integrated, only 1 and 2 fully operational;
   //msasoption: 1-fixed 2-free 3-contrained 4-integrated, only 1 and 2 fully operational;
   //other values default to "fixed";
@@ -18,7 +18,7 @@ Model::Model(int effo,int masso,bool fitm): // constructor sets up PDF's to refl
   mass(0),  
   peak(0),
   gamma(0),
-  sigmamu(0),sigmae(0),
+  sigmamu(0),sigmarele(0),sigmae(0),
   norm(0),normbkge(0),normbkgmu(0),
   bkgslopmu(0),bkgslope(0),bkgshape(0),
   effratio(0),effratiomean(0),effratiosigma(0),
@@ -28,10 +28,14 @@ Model::Model(int effo,int masso,bool fitm): // constructor sets up PDF's to refl
   trueshift(1.),
   trueeff(1.),
   trueslopemu(-2),
+  truewidth(30),
+  truerese(0.005),
   fitwithpeak(truepeak),
   fitwithshift(trueshift),
   fitwitheff(trueeff),
   fitwithslopemu(trueslopemu),
+  fitwithwidth(truewidth),
+  fitwithrese(truerese),
   sample("sample","sample"),
   fitrese(0),fitresmu(0),fitresboth(0),
   fitresbe(0),fitresbmu(0),fitresbboth(0),
@@ -39,6 +43,7 @@ Model::Model(int effo,int masso,bool fitm): // constructor sets up PDF's to refl
   effoption(effo),
   massoption(masso),
   fitmass(fitm),
+  fitwidth(fitw),
   rand(0),
   effratiodist(0),
   massshiftdist(0),
@@ -100,10 +105,12 @@ Model::Model(int effo,int masso,bool fitm): // constructor sets up PDF's to refl
   }
 
   //define signal functions
-  gamma      = new RooRealVar("gamma","BW gamma",30);
+  gamma      = new RooRealVar("gamma","BW gamma",truewidth);
+  if(fitwidth) {gamma->setRange(0,50);gamma->setConstant(kFALSE);gamma->setError(1.);}
   sigmamu    = new RooRealVar("sigmamu","gaus sigma mu",75);
-  sigmae     = new RooRealVar("sigmae","gaus sigma e",15);
   peak       = new RooRealVar("peak","mass peak",truepeak);
+  sigmarele  = new RooRealVar("sigmaeral","relative e reslution",truerese);
+  sigmae     = new RooProduct("sigmae","gaus sigma e",RooArgSet(*sigmarele,*peak));
   if(fitmass) {peak->setRange(100,6500);peak->setConstant(kFALSE);peak->setError(1.);}
   shiftedpeak= new RooProduct("shiftedpeak","shiftedpeak",RooArgSet(*peak,*massshift));
   signale    = new RooVoigtian("signale","signal pdf e",*mass,*shiftedpeak,*gamma,*sigmae);
@@ -113,8 +120,11 @@ Model::Model(int effo,int masso,bool fitm): // constructor sets up PDF's to refl
   bkgslopmu  = new RooRealVar("bkgsig","bkgsig",-2);
   bkgmu      = new RooMuBackground("bckgmu","muon background",*mass,*bkgslopmu);
 
-  bkgslope   = new RooRealVar("bckgslope","slope parameter",0.00117167);
-  bkgshape   = new RooRealVar("bckgshape","shape parameter",3.59353);
+  
+  bkgslope   = new RooRealVar("bckgslope","slope parameter",0.001308);
+  bkgshape   = new RooRealVar("bckgshape","shape parameter",3.8729);
+  //  bkgslope   = new RooRealVar("bckgslope","slope parameter",0.00225);
+  //  bkgshape   = new RooRealVar("bckgshape","shape parameter",3.55);
   bkge       = new RooEBackground("bckg","e background",*mass,*bkgslope,*bkgshape);
 
   
@@ -175,7 +185,7 @@ void Model::fit(DataSetHelper& data){
     normbkge->setValueDirty();
     normbkge->setError(.1);
 
-    // background only
+    // background only for 
     fitresbe = extbkge->fitTo(*(data.datae),options);
 
     //reset paramters
@@ -185,7 +195,13 @@ void Model::fit(DataSetHelper& data){
     normbkge->setVal(10);
     normbkge->setValueDirty();
     normbkge->setError(.1);
-
+    gamma->setVal(fitwithwidth);
+    gamma->setError(1.);
+    gamma->setValueDirty();
+    sigmarele->setVal(fitwithrese);
+    sigmarele->setError(1.);
+    sigmarele->setValueDirty();
+    
     double min=0.,max=0.;
     if(!massshift->isConstant()){//start fit with the assumption of normal mass scale
       massshift->setVal(1.);
@@ -214,25 +230,44 @@ void Model::fit(DataSetHelper& data){
     }
 
     if(!peak->isConstant()){ //finding the true minimum at variable peak-mass is tricky
-//       //signal and background: danger uglyworkaround ahead
-//       //Minuit/RooFit will often miss the true maximum =>fit in two steps
-//       // first set the width to a high value to avoid getting suck on single events
-     sigmae->setVal(200);
-     sigmae->setValueDirty();
-     fitrese = sume->fitTo(*(data.datae),options);
-     // did the trial fit work?
-     if(fitrese->status() != 0 || sqrt(2*fabs(fitresbe->minNll() - fitrese->minNll()))<0.01 ){// did not converge, try highest event again
-       data.datae->getRange(*mass,min,max);      
-       peak->setVal(max/massshift->getVal());
-       peak->setValueDirty();
-       peak->setError(500.);
-     }
-     delete fitrese;// we don't need the temporary result
-     //reset the width and fit again
-      sigmae->setVal(15);
-      sigmae->setValueDirty();      
+      //do a scan of likelihood for good intial value
+      double maxlike = -1;
+      int maxpoint =-1;
+      int nscanpoint= (int)ceil((max-min)/sigmae->getVal());
+      std::cout << "scanning from " << min << " to " << max << " in " << nscanpoint << " steps" <<std::endl; 
+      //fix width for sccanning
+      gamma->setConstant(kTRUE);
+      for(int scanpoint = 0 ; scanpoint<nscanpoint;scanpoint++ ){
+	peak->setVal(min + scanpoint*(max-min)/nscanpoint);
+	peak->setConstant(kTRUE);
+	norm->setVal(10);
+	norm->setValueDirty();
+	norm->setError(.1);
+	normbkge->setVal(10);
+	normbkge->setValueDirty();
+	normbkge->setError(.1);
+	fitrese = sume->fitTo(*(data.datae),options);
+	double sig = sqrt(2*fabs( fitrese->minNll() - fitresbe->minNll())) ;
+	delete fitrese;
+	//std::cout << "sig: " << sig << " at " << peak->getVal() << std::endl;
+	if (sig>maxlike){
+	  maxpoint = scanpoint;
+	  maxlike = sig;
+	}
+      }
+      std::cout << "maximum at " << min + maxpoint*(max-min)/nscanpoint << " with " << maxlike <<std::endl;
+      peak->setVal(min + maxpoint*(max-min)/nscanpoint);
+      peak->setConstant(kFALSE);
+      if(fitwidth) gamma->setConstant(kFALSE);
+      norm->setVal(10);
+      norm->setValueDirty();
+      norm->setError(.1);
+      normbkge->setVal(1.0);
+      normbkge->setValueDirty();
+      normbkge->setError(.1);
     }
     fitrese = sume->fitTo(*(data.datae),options);    
+    std::cout <<  fitresbe->minNll() << " " << fitrese->minNll()<< " " << sqrt(2*fabs( fitrese->minNll() - fitresbe->minNll())) << std::endl;
   }
 
   if(data.datamu){ //muon data exists => fit it
@@ -254,34 +289,55 @@ void Model::fit(DataSetHelper& data){
     normbkgmu->setVal(10);
     normbkgmu->setValueDirty();
     normbkgmu->setError(.1);
-
+    gamma->setVal(fitwithwidth);
+    gamma->setError(1.);
+    gamma->setValueDirty();
+ 
     double min=0.,max=0.;
     if(!peak->isConstant()){ // if the peak value is constant, don't touch it
       data.datamu->getRange(*mass,min,max);      
       peak->setVal(max);
       peak->setValueDirty();
       peak->setError(500.);
-    }
-    //signal and background
-    //same comments as above
-    // first set the width to a high value to avoid getting suck on single events
-    if(!peak->isConstant()){
-      sigmamu->setVal(200);
-      sigmamu->setValueDirty();
-      fitresmu = summu->fitTo(*(data.datamu),options);
-      if(fitresmu->status() != 0 || sqrt(2*fabs(fitresbe->minNll() - fitresmu->minNll()))<0.01 ){// did not converge, try highest event again
-	data.datae->getRange(*mass,min,max);      
-	peak->setVal(max/massshift->getVal());
-	peak->setValueDirty();
-	peak->setError(500.);
-      }
-      delete fitresmu; // we don't need the temporary result
-      //reset the width and fit again
-      sigmamu->setVal(15);
-      sigmamu->setValueDirty();
     }else{
       peak->setVal(fitwithpeak);
       peak->setValueDirty();
+    }
+    //signal and background
+    //same comments as above
+    if(!peak->isConstant()){
+      //do a scan of likelihood for good intial value
+      double maxlike = -1;
+      int maxpoint =-1;
+      int nscanpoint=(int)ceil((max-min)/sigmamu->getVal());
+      //fix width for sccanning
+      gamma->setConstant(kTRUE);
+      for(int scanpoint = 0 ; scanpoint<nscanpoint;scanpoint++ ){
+	peak->setVal(min + scanpoint*(max-min)/nscanpoint);
+	peak->setConstant(kTRUE);
+	norm->setVal(10);
+	norm->setValueDirty();
+	norm->setError(.1);
+	normbkgmu->setVal(10);
+	normbkgmu->setValueDirty();
+	normbkgmu->setError(.1);
+	fitresmu = summu->fitTo(*(data.datamu),options);
+	double sig = sqrt(2*fabs( fitresmu->minNll() - fitresbmu->minNll())) ;
+	delete fitresmu;
+	if (sig>maxlike){
+	  maxpoint = scanpoint;
+	  maxlike = sig;
+	}
+      }
+      peak->setVal(min + maxpoint*(max-min)/nscanpoint);
+      peak->setConstant(kFALSE);
+      if(fitwidth) gamma->setConstant(kFALSE);
+      norm->setVal(10);
+      norm->setValueDirty();
+      norm->setError(.1);
+      normbkgmu->setVal(10);
+      normbkgmu->setValueDirty();
+      normbkgmu->setError(.1);
     }      
     fitresmu = summu->fitTo(*(data.datamu),options);    
   }
@@ -310,8 +366,15 @@ void Model::fit(DataSetHelper& data){
     normbkgmu->setVal(10);
     normbkgmu->setValueDirty();
     normbkgmu->setError(.1);
+    gamma->setVal(fitwithwidth);
+    gamma->setError(1.);
+    gamma->setValueDirty();
+    sigmarele->setVal(fitwithrese);
+    sigmarele->setError(1.);
+    sigmarele->setValueDirty();
 
     double maxe=0.,maxmu=0.;
+
     if(!massshift->isConstant()){//start fit with the assumption of normal mass scale
       massshift->setVal(1.);
       massshift->setError(0.5);

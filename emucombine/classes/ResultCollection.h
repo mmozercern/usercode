@@ -3,6 +3,7 @@
 #include "DataSetHelper.h"
 #include "TFile.h"
 #include "TH1F.h"
+#include "TH2F.h"
 
 class Model;
 class DataSetHelper;
@@ -26,6 +27,10 @@ class ResultCollection{
   void setmassshift(int,Model&);                       // massshift and pull plot for massshift
   void settotalmass(int,int,Model&);                   // sum of all generated events
   void setsamplemass(int,int,Model&);                  // sample mass spectrum
+  void setwidthhistos(int,int,Model&);
+  void setwidthnormhistos(int,int,Model&);
+  void set2d(int,int,int,float,Model&);
+
 
   // add likelihood scan
 
@@ -33,7 +38,7 @@ class ResultCollection{
   void fillhistos(Model&,DataSetHelper&);           // fill all histos that have been set
   
   void savehistos(char*);                           // write histograms to a file
-  void savehistos(TFile&);                          // write histograms to a file
+  void savehistos(TFile&,char*);                          // write histograms to a file
 
   TH1F* sige,*sigmu,*sigboth;
   TH1F* peake,*peakmu,*peakboth;
@@ -46,6 +51,11 @@ class ResultCollection{
   TH1F* massshiftplot,*massshiftpull;
   TH1F* totalmasse,*totalmassmu;
   TH1F* samplemasse,*samplemassmu;
+  TH1F* widthe,*widthmu,*widthboth;
+  TH1F* widthepull,*widthmupull,*widthbothpull;
+  
+  TH2F* sigvspeake,*sigvspeakmu,*sigvspeakboth;
+  TH2F* sigvswide,*sigvswidmu, *sigvswidboth ;
 
 };
 

@@ -37,6 +37,7 @@
  { 
    // ENTER EXPRESSION IN TERMS OF VARIABLE ARGUMENTS HERE 
    return exp(mubslope*TMath::Power(mubx, 0.3)) ;
+   //return exp(mubslope*TMath::Power(2.61, 0.2763)) ;
  } 
 
 

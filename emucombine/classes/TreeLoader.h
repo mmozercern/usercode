@@ -18,7 +18,7 @@ class TreeLoader{
   TFile* file;
   int nevents;
   int neventsused;
-  Double_t mass;
+  Float_t mass;
   TBranch* massbranch;
 };
 #endif

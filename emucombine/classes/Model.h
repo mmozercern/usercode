@@ -22,7 +22,7 @@ class DataSetHelper;
 
 class Model{
  public:
-  Model(int,int,bool);
+  Model(int,int,bool,bool=false);
   ~Model();
 
   RooAddPdf* sume,*summu;                                // signal + backgr pdfs
@@ -32,7 +32,8 @@ class Model{
   RooRealVar* mass;                                      // mass: master variable
   RooRealVar* peak;                                      // peak position (directly used for muons)
   RooRealVar* gamma;                                     // peak natural width
-  RooRealVar* sigmamu,*sigmae;                           // mass resolutin XXX make function of mass XXX      
+  RooRealVar* sigmamu,*sigmarele;                        // mass resolutin XXX make function of mass XXX      
+  RooProduct* sigmae;
   RooRealVar* norm,*normbkge,*normbkgmu;                 // singal and background cross sections
   RooRealVar* bkgslopmu,*bkgslope,*bkgshape;             // background shape parameters
   RooRealVar* effratio,*effratiomean,*effratiosigma;     // efficiency ratio and distribution params.
@@ -43,11 +44,15 @@ class Model{
   double trueshift;                                      // mass shift for generation
   double trueeff;                                        // efficiency for generation
   double trueslopemu;
-
+  double truewidth;
+  double truerese;                                       // true electron resolution
+  
   double fitwithpeak;
   double fitwithshift;
   double fitwitheff;
   double fitwithslopemu;                                 // for the fit, set the value to this
+  double fitwithwidth;                                 // for the fit, use this
+  double fitwithrese;
 
   RooCategory sample;                                    // defines e/mu for RooFit
 
@@ -59,6 +64,7 @@ class Model{
   int effoption;                                         // 1-fixed 2-free 3-contrained 4-integrated, only 1 and 2 fully operational;
   int massoption;                                        // 1-fixed 2-free 3-contrained 4-integrated, only 1 and 2 fully operational;
   bool fitmass;                                          // should the peak value be a fit parameter?
+  bool fitwidth;
 
   TRandom3 rand;                                         // std. root random numbers
 
@@ -71,7 +77,7 @@ class Model{
   RooProdPdf* shiftprod;                                  //
   RooAbsPdf* extsige,*extsigmu;
 
-  void fit(DataSetHelper&);                              // fit to given datasets
+  void fit(DataSetHelper&);                         // fit to given datasets
 
 };
 

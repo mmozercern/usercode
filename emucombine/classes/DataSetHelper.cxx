@@ -9,6 +9,7 @@ DataSetHelper::DataSetHelper():
   datae(0),databe(0),datase(0),     
   datamu(0),databmu(0),datasmu(0),  
   combdata(0),                  
+  meane(0),meanmu(0),meanbe(0),meanbmu(0),meanse(0),meansmu(0),
   fnameetot(""),fnamemutot(""),     
   fnamebkge(""),fnamesige(""),      
   fnamebkgmu(""),fnamesigmu(""),     
@@ -83,6 +84,12 @@ void DataSetHelper::generatefrompdf(float meane, float meanmu, Model& model, int
   model.effratio->setValueDirty();
   model.massshift->setVal(model.trueshift);
   model.massshift->setValueDirty();
+  model.bkgslopmu->setVal(model.trueslopemu);
+  model.bkgslopmu->setValueDirty();
+  model.gamma->setVal(model.truewidth);
+  model.gamma->setValueDirty();
+  model.sigmarele->setVal(model.truerese);
+  model.sigmarele->setValueDirty();
 
   if(whichvar & 1){ // fill electrons
     ntote = rand.Poisson(meane);
@@ -108,12 +115,31 @@ void DataSetHelper::generatefrompdf(float meane, float meanmu, Model& model, int
   }
 }
 
+void DataSetHelper::generatefrompdf(float meansige, float meansigmu, float meanbkge, float meanbkgmu, 
+				    Model& model, int whichvar){
+  //save poisson means for generation
+  meanse=meansige;
+  meansmu=meansigmu;
+  meanbe=meanbkge;
+  meanbmu=meanbkgmu;
+
+  int actualse = rand.Poisson(meanse);
+  int actualsmu = rand.Poisson(meansmu);
+  int actualbe = rand.Poisson(meanbe);
+  int actualbmu = rand.Poisson(meanbmu);
+    
+  generatefrompdffix(actualse,actualsmu,actualbe,actualbmu, model, whichvar);
+
+}
 
 // generate signal and background separately
-void DataSetHelper::generatefrompdf(float meansige, float meansigmu, float meanbkge, float meanbkgmu, 
+void DataSetHelper::generatefrompdffix(int meansige, int meansigmu, int meanbkge, int meanbkgmu, 
 				    Model& model, int whichvar){
   clear();
   //reset variable to true values
+
+
+  // set model to values for generation
   model.peak->setVal(model.truepeak);
   model.peak->setValueDirty();
   model.effratio->setVal(model.trueeff);
@@ -122,10 +148,14 @@ void DataSetHelper::generatefrompdf(float meansige, float meansigmu, float meanb
   model.massshift->setValueDirty();
   model.bkgslopmu->setVal(model.trueslopemu);
   model.bkgslopmu->setValueDirty();
+  model.gamma->setVal(model.truewidth);
+  model.gamma->setValueDirty();
+  model.sigmarele->setVal(model.truerese);
+  model.sigmarele->setValueDirty();
 
   if(whichvar & 1){ // fill electrons
-    nsige = rand.Poisson(meansige);
-    nbkge = rand.Poisson(meanbkge);
+    nsige = meansige;
+    nbkge = meanbkge; 
     ntote = nsige + nbkge;
     
     if(nsige == 0)
@@ -143,8 +173,8 @@ void DataSetHelper::generatefrompdf(float meansige, float meansigmu, float meanb
   }
 
   if(whichvar & 2){ // fill muons 
-    nsigmu = rand.Poisson(meansigmu);
-    nbkgmu = rand.Poisson(meanbkgmu);
+    nsigmu = meansigmu;
+    nbkgmu = meanbkgmu;
     ntotmu = nsigmu + nbkgmu;
         
     if(nsigmu == 0)
@@ -170,11 +200,75 @@ void DataSetHelper::generatefrompdf(float meansige, float meansigmu, float meanb
 // read data from files (background/signal separate)
 void DataSetHelper::readfromfile(float meansige, float meansigmu, float meanbkge, float meanbkgmu, 
 		  Model& model, int whichvar){      
+  //reset datasets
+  clear();
+  if(whichvar & 1){
+    int nsige = rand.Poisson(meansige);
+    int nbkge = rand.Poisson(meanbkge);
+    if(nsige == 0)
+      datase = new RooDataSet("datase","datase",RooArgSet(*(model.mass)));
+    else
+      datase = filereaderse->getevents(nsige,*(model.mass));
+    if(nbkge == 0)
+      databe = new RooDataSet("databe","databe",RooArgSet(*(model.mass)));
+    else
+      databe = filereaderbe->getevents(nbkge,*(model.mass));
+    
+    if(datase !=0 && databe!=0){ //only merge after successfull read
+      datae = new RooDataSet("datae","datae",RooArgSet(*(model.mass)));
+      datae->append(*datase);
+      datae->append(*databe);
+    }
+    else
+      datae=0;
+    
+  }
+  if(whichvar &2){
+    int nsigmu = rand.Poisson(meansigmu);
+    int nbkgmu = rand.Poisson(meanbkgmu);
+     if(nsigmu == 0)
+      datasmu = new RooDataSet("datasmu","datasmu",RooArgSet(*(model.mass)));
+    else
+      datasmu = filereadersmu->getevents(nsigmu,*(model.mass));
+    if(nbkgmu == 0)
+      databmu = new RooDataSet("databmu","databmu",RooArgSet(*(model.mass)));
+    else
+      databmu = filereaderbmu->getevents(nsigmu,*(model.mass));
+    
+    if(datasmu !=0 && databmu!=0){ //only merge after successfull read
+      datamu = new RooDataSet("datamu","datamu",RooArgSet(*(model.mass)));
+      datamu->append(*datasmu);
+      datamu->append(*databmu);
+    }
+    else
+      datamu=0;   
+  }
+  if(whichvar & 1  && whichvar & 2){ //fill both
+    combdata = new RooDataSet("combData","combined data",*(model.mass),
+			      Index(model.sample),Import("e",*datae),Import("mu",*datamu)) ;
+  }
+  
 }
 
 // read data from files (background/sginal together)
 void DataSetHelper::readfromfile(float meane ,float meanmu ,Model& model ,int whichvar) {
+  //reset datasets
+  clear();
 
+  if(whichvar & 1){
+    int ne = rand.Poisson(meane);
+    datae = filereadere->getevents(ne,*(model.mass));
+  }
+  if(whichvar &2){
+    int nmu = rand.Poisson(meanmu);
+    datamu = filereadermu->getevents(nmu,*(model.mass));
+  }
+  if(whichvar & 1  && whichvar & 2){ //fill both
+    combdata = new RooDataSet("combData","combined data",*(model.mass),
+			      Index(model.sample),Import("e",*datae),Import("mu",*datamu)) ;
+  }
 }
+
+
 
 

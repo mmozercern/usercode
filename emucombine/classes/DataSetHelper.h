@@ -15,6 +15,9 @@ class DataSetHelper{
   RooDataSet* datamu,*databmu,*datasmu;              // mu data
   RooDataSet* combdata;                              // combined data
 
+  float meane,meanmu,meanbe,meanbmu,meanse,meansmu;  // save poisson means of generation
+
+
   DataSetHelper();
   ~DataSetHelper();
 
@@ -23,6 +26,7 @@ class DataSetHelper{
   void initfileread();                               // initialize file readers for 
                                                      // files that have been set
   void generatefrompdf(float,float,float,float,Model&,int);   // generate Data from the PDFs in the model
+  void generatefrompdffix(int,int,int,int,Model&,int);   // generate Data from the PDFs in the model no poisson fluctuations
   void generatefrompdf(float,float,Model&,int);       // generate Data from the PDFs (using x-secs from the model)
   void readfromfile(float,float,float,float,Model&,int);      // read data from files (background/signal separate)
   void readfromfile(float,float,Model&,int);          // read data from files (background/sginal together)
