@@ -30,6 +30,7 @@ class DataSetHelper{
   void generatefrompdf(float,float,Model&,int);       // generate Data from the PDFs (using x-secs from the model)
   void readfromfile(float,float,float,float,Model&,int);      // read data from files (background/signal separate)
   void readfromfile(float,float,Model&,int);          // read data from files (background/sginal together)
+  void readfromtxt(char*,char*,Model&,int);          // read data from files (background/sginal together)
     
 
   std::string fnameetot,fnamemutot;                  // names of input files

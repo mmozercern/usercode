@@ -18,7 +18,7 @@ Model::Model(int effo,int masso,bool fitm,bool fitw): // constructor sets up PDF
   mass(0),  
   peak(0),
   gamma(0),
-  sigmamu(0),sigmarele(0),sigmae(0),
+  sigmarelmu(0),sigmarele(0),sigmae(0),sigmamu(0),
   norm(0),normbkge(0),normbkgmu(0),
   bkgslopmu(0),bkgslope(0),bkgshape(0),
   effratio(0),effratiomean(0),effratiosigma(0),
@@ -29,13 +29,14 @@ Model::Model(int effo,int masso,bool fitm,bool fitw): // constructor sets up PDF
   trueeff(1.),
   trueslopemu(-2),
   truewidth(30),
+  trueresmu(0.06),
   truerese(0.005),
   fitwithpeak(truepeak),
   fitwithshift(trueshift),
   fitwitheff(trueeff),
   fitwithslopemu(trueslopemu),
   fitwithwidth(truewidth),
-  fitwithrese(truerese),
+  fitwithresmu(trueresmu),fitwithrese(truerese),
   sample("sample","sample"),
   fitrese(0),fitresmu(0),fitresboth(0),
   fitresbe(0),fitresbmu(0),fitresbboth(0),
@@ -105,10 +106,11 @@ Model::Model(int effo,int masso,bool fitm,bool fitw): // constructor sets up PDF
   }
 
   //define signal functions
+  peak       = new RooRealVar("peak","mass peak",truepeak);
   gamma      = new RooRealVar("gamma","BW gamma",truewidth);
   if(fitwidth) {gamma->setRange(0,50);gamma->setConstant(kFALSE);gamma->setError(1.);}
-  sigmamu    = new RooRealVar("sigmamu","gaus sigma mu",75);
-  peak       = new RooRealVar("peak","mass peak",truepeak);
+  sigmarelmu  = new RooRealVar("sigmamural","relative mu reslution",trueresmu);
+  sigmamu    = new RooProduct("sigmamu","gaus sigma mu",RooArgSet(*sigmarelmu,*peak));
   sigmarele  = new RooRealVar("sigmaeral","relative e reslution",truerese);
   sigmae     = new RooProduct("sigmae","gaus sigma e",RooArgSet(*sigmarele,*peak));
   if(fitmass) {peak->setRange(100,6500);peak->setConstant(kFALSE);peak->setError(1.);}
@@ -292,7 +294,11 @@ void Model::fit(DataSetHelper& data){
     gamma->setVal(fitwithwidth);
     gamma->setError(1.);
     gamma->setValueDirty();
- 
+    sigmarelmu->setVal(fitwithresmu);
+    sigmarelmu->setError(1.);
+    sigmarelmu->setValueDirty();
+
+
     double min=0.,max=0.;
     if(!peak->isConstant()){ // if the peak value is constant, don't touch it
       data.datamu->getRange(*mass,min,max);      
@@ -372,6 +378,9 @@ void Model::fit(DataSetHelper& data){
     sigmarele->setVal(fitwithrese);
     sigmarele->setError(1.);
     sigmarele->setValueDirty();
+    sigmarelmu->setVal(fitwithresmu);
+    sigmarelmu->setError(1.);
+    sigmarelmu->setValueDirty();
 
     double maxe=0.,maxmu=0.;
 

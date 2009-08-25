@@ -32,8 +32,8 @@ class Model{
   RooRealVar* mass;                                      // mass: master variable
   RooRealVar* peak;                                      // peak position (directly used for muons)
   RooRealVar* gamma;                                     // peak natural width
-  RooRealVar* sigmamu,*sigmarele;                        // mass resolutin XXX make function of mass XXX      
-  RooProduct* sigmae;
+  RooRealVar* sigmarelmu,*sigmarele;                        // mass resolutin XXX make function of mass XXX      
+  RooProduct* sigmae,*sigmamu;
   RooRealVar* norm,*normbkge,*normbkgmu;                 // singal and background cross sections
   RooRealVar* bkgslopmu,*bkgslope,*bkgshape;             // background shape parameters
   RooRealVar* effratio,*effratiomean,*effratiosigma;     // efficiency ratio and distribution params.
@@ -45,14 +45,14 @@ class Model{
   double trueeff;                                        // efficiency for generation
   double trueslopemu;
   double truewidth;
-  double truerese;                                       // true electron resolution
+  double trueresmu,truerese;                                       // true electron resolution
   
   double fitwithpeak;
   double fitwithshift;
   double fitwitheff;
   double fitwithslopemu;                                 // for the fit, set the value to this
   double fitwithwidth;                                 // for the fit, use this
-  double fitwithrese;
+  double fitwithresmu,fitwithrese;
 
   RooCategory sample;                                    // defines e/mu for RooFit
 

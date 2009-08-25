@@ -90,6 +90,8 @@ void DataSetHelper::generatefrompdf(float meane, float meanmu, Model& model, int
   model.gamma->setValueDirty();
   model.sigmarele->setVal(model.truerese);
   model.sigmarele->setValueDirty();
+  model.sigmarelmu->setVal(model.trueresmu);
+  model.sigmarelmu->setValueDirty();
 
   if(whichvar & 1){ // fill electrons
     ntote = rand.Poisson(meane);
@@ -152,6 +154,8 @@ void DataSetHelper::generatefrompdffix(int meansige, int meansigmu, int meanbkge
   model.gamma->setValueDirty();
   model.sigmarele->setVal(model.truerese);
   model.sigmarele->setValueDirty();
+  model.sigmarelmu->setVal(model.trueresmu);
+  model.sigmarelmu->setValueDirty();
 
   if(whichvar & 1){ // fill electrons
     nsige = meansige;
@@ -262,6 +266,27 @@ void DataSetHelper::readfromfile(float meane ,float meanmu ,Model& model ,int wh
   if(whichvar &2){
     int nmu = rand.Poisson(meanmu);
     datamu = filereadermu->getevents(nmu,*(model.mass));
+  }
+  if(whichvar & 1  && whichvar & 2){ //fill both
+    combdata = new RooDataSet("combData","combined data",*(model.mass),
+			      Index(model.sample),Import("e",*datae),Import("mu",*datamu)) ;
+  }
+}
+
+
+
+
+void DataSetHelper::readfromtxt(char* ename, char* muname,Model& model ,int whichvar) {
+  //reset datasets
+  clear();
+
+  if(whichvar & 1){
+    assert(ename != NULL);
+    datae = RooDataSet::read(ename,RooArgSet(*(model.mass)));
+  }
+  if(whichvar &2){
+    assert(muname != NULL);
+    datamu = RooDataSet::read(muname,RooArgSet(*(model.mass)));
   }
   if(whichvar & 1  && whichvar & 2){ //fill both
     combdata = new RooDataSet("combData","combined data",*(model.mass),
