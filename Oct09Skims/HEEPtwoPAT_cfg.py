@@ -62,7 +62,7 @@ process.heepId = cms.EDProducer("HEEPAttStatusToPAT",
                                 )
 
 
-process.lowetpath = cms.Path(process.patDefaultSequence* process.heepId * process.highetele*process.highetFilter)
+process.lowetpath = cms.Path( process.highetele * process.highetFilter* process.patDefaultSequence* process.heepId )
 
 process.load("Configuration.EventContent.EventContent_cff")
 process.out = cms.OutputModule("PoolOutputModule",
