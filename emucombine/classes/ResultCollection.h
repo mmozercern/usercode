@@ -40,7 +40,7 @@ class ResultCollection{
   void savehistos(char*);                           // write histograms to a file
   void savehistos(TFile&,char*);                          // write histograms to a file
 
-  TH1F* sige,*sigmu,*sigboth;
+  TH1F* sige,*sigmu,*sigboth,*sigdiff;
   TH1F* peake,*peakmu,*peakboth;
   TH1F* peakepull,*peakmupull,*peakbothpull;
   TH1F* nsige,*nsigmu,*nsigboth;

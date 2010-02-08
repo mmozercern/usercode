@@ -1,10 +1,11 @@
 #include "ResultCollection.h"
 #include "RooFitResult.h"
+#include "RooGlobalFunc.h"
 #include "Model.h"
 #include "DataSetHelper.h"
 
 ResultCollection::ResultCollection():
-  sige(0),sigmu(0),sigboth(0),
+  sige(0),sigmu(0),sigboth(0),sigdiff(0),
   peake(0),peakmu(0),peakboth(0),
   peakepull(0),peakmupull(0),peakbothpull(0),
   nsige(0),nsigmu(0),nsigboth(0),
@@ -30,6 +31,7 @@ void ResultCollection::clear(){
   if(sige ) delete sige ;
   if(sigmu ) delete sigmu ;
   if(sigboth ) delete sigboth ;
+  if(sigdiff ) delete sigdiff ;
   if(peake ) delete peake ;
   if(peakmu ) delete peakmu ;
   if(peakboth ) delete peakboth ;
@@ -78,8 +80,10 @@ void ResultCollection::setsighistos(int whichvar,int nbins,float highbin,float l
     sige = new TH1F("sige","significnance e",nbins,highbin,lowbin);
   if(whichvar & 2)
     sigmu = new TH1F("sigmu","significnance mu",nbins,highbin,lowbin);
-  if((whichvar & 1) && (whichvar & 2))
+  if((whichvar & 1) && (whichvar & 2)){
     sigboth = new TH1F("sigboth","significnance both",nbins,highbin,lowbin);
+    sigdiff = new TH1F("sigdiff","Z_{obs}-Z{_exp}",nbins,-1.,0.2);
+  }
 }
 void ResultCollection::setpeakhistos(int whichvar,int nbins,Model& model){
   if(whichvar & 1)
@@ -188,13 +192,25 @@ void ResultCollection::set2d(int whichvar, int nbinsx,int nbinsy, float sigmaend
 void  ResultCollection::fillhistos(Model& model,DataSetHelper& data){
   //std::cout << "sig" << std::endl;
   // significance histgrams (will crash if histos defined for absent fits)
-  if(sige) 
-    sige->Fill(sqrt(2*fabs(model.fitresbe->minNll() - model.fitrese->minNll())));
-    //sige->Fill(exp(model.fitrese->minNll() - model.fitresbe->minNll()));
+  if(sige){ 
+    if(!model.normbkge->isConstant())
+      sige->Fill(sqrt(2*fabs(model.fitresbe->minNll() - model.fitrese->minNll())));
+    else{
+      RooAbsReal* nnn = model.extbkge->createNLL(*(data.datae),RooFit::Extended(kTRUE),RooFit::Optimize(kFALSE));
+      sige->Fill(sqrt(2*fabs(model.fitrese->minNll() - nnn->evaluate() ))); 
+      delete nnn;
+      //std::cout << model.fitrese->minNll() << " " << model.extbkge->createNLL(*(data.datae),RooFit::Extended(kTRUE),RooFit::Optimize(kFALSE))->evaluate() <<std::endl;
+    }//sige->Fill(exp(model.fitrese->minNll() - model.fitresbe->minNll()));
+  } 
   if(sigmu)
     sigmu->Fill(sqrt(2*fabs(model.fitresbmu->minNll() - model.fitresmu->minNll())));
   if(sigboth)
     sigboth->Fill(sqrt(2*fabs(model.fitresbboth->minNll() - model.fitresboth->minNll())));
+  if(sigdiff)
+    sigdiff->Fill(
+		  sqrt(2*fabs(model.fitresbboth->minNll() - model.fitresboth->minNll())) 
+		  - sqrt( (2*fabs(model.fitresbmu->minNll() - model.fitresmu->minNll())) + (2*fabs(model.fitresbe->minNll() - model.fitrese->minNll())) ) 
+		  );
   //peak-positions
   //std::cout << "peak" << std::endl;
   if(peake){ 
@@ -330,7 +346,7 @@ void  ResultCollection::fillhistos(Model& model,DataSetHelper& data){
     if(model.effratio->isConstant())
       effratiopull->Fill( (dynamic_cast<RooAbsReal*>(model.fitresboth->constPars().find("effratio"))->getVal()  - model.trueeff)/model.trueeff);
     else
-      effratiopull->Fill( (dynamic_cast<RooAbsReal*>(model.fitresboth->floatParsFinal().find("effratio"))->getVal() - model.trueeff)/model.trueeff);
+      effratiopull->Fill( (dynamic_cast<RooAbsReal*>(model.fitresboth->floatParsFinal().find("effratio"))->getVal() - model.trueeff)/dynamic_cast<RooRealVar*>(model.fitresboth->floatParsFinal().find("effratio"))->getError());
   }
   // massshift plots
   if(massshiftplot){
@@ -446,6 +462,7 @@ void  ResultCollection::savehistos(TFile& outfile,char* subname){
   if(sige) sige->Write();
   if(sigmu) sigmu->Write();
   if(sigboth) sigboth->Write();
+  if(sigdiff) sigdiff->Write();
   if(peake) peake->Write();
   if(peakmu) peakmu->Write();
   if(peakboth) peakboth->Write();

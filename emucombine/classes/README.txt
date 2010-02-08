@@ -52,6 +52,15 @@ correspond.C Will compare a given histogram to a one-sided Gaussian, i.e. it pro
        typical look-elsewhere plot from the distribution of Z-values
 lookelse.C produces a pleasing plot from the output of the above
 
+limits:
+limit.C This contains everything needed for the limits. Usage is as follows:
+.x loadlib.C //(loads the various roofit libraries)
+.L limit.C
+prodlim(int iterations,"filename")  // will produce a root file with the results of pseudoexperiments of varying numbers of signal events.
+restart root (there seems to be some problem with roots file-handling)
+.L limit.C
+limit("filename") // this fills 3 TGraph* called exclusionslopee exclusionslopemu and exclusionslopeboth from wich the limit can be read as in figure 14a) in AN2009-97
+
 
 whatever's left:
 HEEPStyle_noTitle.C Sam's old plot-style improvements

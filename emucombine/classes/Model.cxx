@@ -2,6 +2,7 @@
 #include "RooGlobalFunc.h"
 #include "RooNumIntConfig.h"
 #include "DataSetHelper.h"
+#include "RooRandom.h"
 
 using namespace RooFit;
 
@@ -29,7 +30,7 @@ Model::Model(int effo,int masso,bool fitm,bool fitw): // constructor sets up PDF
   trueeff(1.),
   trueslopemu(-2),
   truewidth(30),
-  trueresmu(0.06),
+  trueresmu(0.08),
   truerese(0.005),
   fitwithpeak(truepeak),
   fitwithshift(trueshift),
@@ -60,6 +61,9 @@ Model::Model(int effo,int masso,bool fitm,bool fitw): // constructor sets up PDF
   RooAbsReal::defaultIntegratorConfig()->setEpsRel(1e-12) ;
   RooAbsReal::defaultIntegratorConfig()->method1D().setLabel("RooAdaptiveGaussKronrodIntegrator1D") ;
   RooAbsReal::defaultIntegratorConfig()->method1DOpen().setLabel("RooAdaptiveGaussKronrodIntegrator1D");
+
+
+
   
   //deactivate generation messages
   RooMsgService::instance().setStreamStatus(1,kFALSE);
@@ -132,6 +136,9 @@ Model::Model(int effo,int masso,bool fitm,bool fitw): // constructor sets up PDF
   
   //integrate singal pdf over mass-scale uncertainty if necessary
   switch(massoption){
+  case 3: // constrained 
+    shiftsige= new RooProdPdf("temp product","temp product",RooArgSet(*signale,*massshiftdist));
+    options.Add( new RooCmdArg( Constrain(*massshift) ) );break;    
   case 4: // integrated
     shiftprod= new RooProdPdf("temp product","temp product",RooArgSet(*signale,*massshiftdist));
     shiftsige = shiftprod->createProjection(RooArgSet(*massshift));break;
@@ -155,6 +162,13 @@ Model::Model(int effo,int masso,bool fitm,bool fitw): // constructor sets up PDF
   // add signal and background
   sume = new RooAddPdf("sume","signal + bkg e",RooArgList(*extsige,*extbkge));
   summu = new RooAddPdf("summu","signal + bkg mu",RooArgList(*extsigmu,*extbkgmu));
+
+  //integrate singal pdf over mass-scale uncertainty if necessary
+  switch(effoption){
+  case 3: // constrained 
+    options.Add( new RooCmdArg( ExternalConstraints(*effratiodist) ) );break;    
+  }
+ 
 
   // Construct a simultaneous pdf using category sample as index
   sumboth = new RooSimultaneous("simPdf","simultaneous pdf",sample) ;
@@ -183,7 +197,7 @@ void Model::fit(DataSetHelper& data){
 
   if(data.datae){ //electron data exists => fit it
     // set useful starting parameters and errors
-    normbkge->setVal(10);
+    normbkge->setVal(10);//XXXXX 10
     normbkge->setValueDirty();
     normbkge->setError(.1);
 
@@ -194,7 +208,7 @@ void Model::fit(DataSetHelper& data){
     norm->setVal(10);
     norm->setValueDirty();
     norm->setError(.1);
-    normbkge->setVal(10);
+    normbkge->setVal(10);//XXXXXX 10
     normbkge->setValueDirty();
     normbkge->setError(.1);
     gamma->setVal(fitwithwidth);
@@ -214,7 +228,8 @@ void Model::fit(DataSetHelper& data){
       //massshift->setValueDirty();
     }
     if(!peak->isConstant()){ // if the peak value is constant, don't touch it
-      data.datae->getRange(*mass,min,max);      
+      data.datae->getRange(*mass,min,max);
+      if (min< peak->getMin()) min = peak->getMin();
       peak->setVal(max/massshift->getVal());
       peak->setValueDirty();
       peak->setError(500.);
@@ -233,38 +248,44 @@ void Model::fit(DataSetHelper& data){
 
     if(!peak->isConstant()){ //finding the true minimum at variable peak-mass is tricky
       //do a scan of likelihood for good intial value
-      double maxlike = -1;
-      int maxpoint =-1;
-      int nscanpoint= (int)ceil((max-min)/sigmae->getVal());
-      std::cout << "scanning from " << min << " to " << max << " in " << nscanpoint << " steps" <<std::endl; 
-      //fix width for sccanning
-      gamma->setConstant(kTRUE);
-      for(int scanpoint = 0 ; scanpoint<nscanpoint;scanpoint++ ){
-	peak->setVal(min + scanpoint*(max-min)/nscanpoint);
-	peak->setConstant(kTRUE);
-	norm->setVal(10);
-	norm->setValueDirty();
-	norm->setError(.1);
-	normbkge->setVal(10);
-	normbkge->setValueDirty();
-	normbkge->setError(.1);
-	fitrese = sume->fitTo(*(data.datae),options);
-	double sig = sqrt(2*fabs( fitrese->minNll() - fitresbe->minNll())) ;
-	delete fitrese;
+      double maxlike = -1000;
+      int maxpoint =-1000;
+      if( max > min){
+	int nscanpoint= (int)ceil((max-min)/sigmae->getVal());
+	std::cout << "scanning from " << min << " to " << max << " in " << nscanpoint << " steps" <<std::endl; 
+	//fix width for scanning
+	gamma->setConstant(kTRUE);
+	for(int scanpoint = 0 ; scanpoint<nscanpoint;scanpoint++ ){
+	  peak->setVal(min + scanpoint*(max-min)/nscanpoint);
+	  peak->setConstant(kTRUE);
+	  norm->setVal(10);
+	  norm->setValueDirty();
+	  norm->setError(.1);
+	  normbkge->setVal(10);//XXXXX
+	  normbkge->setValueDirty();
+	  normbkge->setError(.1);
+	  fitrese = sume->fitTo(*(data.datae),options);
+	  double sig = sqrt(2*fabs( fitrese->minNll() - fitresbe->minNll())) ;
+	  delete fitrese;
+	  if(normbkge->isConstant()) sig=-sig;//XXXXXXX
 	//std::cout << "sig: " << sig << " at " << peak->getVal() << std::endl;
-	if (sig>maxlike){
-	  maxpoint = scanpoint;
-	  maxlike = sig;
+	  if (sig>maxlike){
+	    maxpoint = scanpoint;
+	    maxlike = sig;
+	  }
 	}
+	std::cout << "maximum at " << min + maxpoint*(max-min)/nscanpoint << " with " << maxlike <<std::endl;
+	peak->setVal(min + maxpoint*(max-min)/nscanpoint);
+	peak->setConstant(kFALSE);
       }
-      std::cout << "maximum at " << min + maxpoint*(max-min)/nscanpoint << " with " << maxlike <<std::endl;
-      peak->setVal(min + maxpoint*(max-min)/nscanpoint);
-      peak->setConstant(kFALSE);
+      else{
+	peak->setVal(min);
+      }
       if(fitwidth) gamma->setConstant(kFALSE);
       norm->setVal(10);
       norm->setValueDirty();
       norm->setError(.1);
-      normbkge->setVal(1.0);
+      normbkge->setVal(10);//XXXXXX !!! 1.0
       normbkge->setValueDirty();
       normbkge->setError(.1);
     }
