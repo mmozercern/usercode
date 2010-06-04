@@ -5,7 +5,9 @@
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/Run.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "CommonTools/RecoUtils/interface/GenericTriggerEventFlag.h"
 
 #include <vector>
 #include "TMath.h"
@@ -20,6 +22,7 @@ class EffAggregator : public edm::EDAnalyzer {
 
 
    private:
+      virtual void beginRun( const edm::Run& run, const edm::EventSetup& setup );
       virtual void analyze(const edm::Event&, const edm::EventSetup&);
       virtual void endJob() ;
 
@@ -39,7 +42,9 @@ class EffAggregator : public edm::EDAnalyzer {
       int cuts; // for backwards compatibility 20 for W 18 for Z
       
       float counts[20][6];
-      
+
+      GenericTriggerEventFlag * genericTriggerEventFlag_; // emulate non-matched trigger cut
+
 };
 
 #endif

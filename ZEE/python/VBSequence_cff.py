@@ -5,7 +5,6 @@
 # vertex requirement
 # dummy MC copy for real data
 # non-selective writing (with user-data)
-# selective writing: NTuplizer + ouptumodule
 # simultaneous W/Z analysis
 
 import FWCore.ParameterSet.Config as cms
@@ -13,18 +12,20 @@ from VBcuts import cutList
 
 tmp = cms.SequencePlaceholder("tmp")
 VBSequence = cms.Sequence(tmp)
+VBSequencePre = cms.Sequence(tmp)
 
-## tightIn = "patElectronsPFlow"
-## looseIn = "patElectronsPFlow"
-## looseInExclusive = ""
-## jetsIn  = "patJetsPFlow"   # "ak5CaloJets"  
-## genIn   = "genParticles"     ## tightIn = "cleanPatElectrons"
+
+#tightIn = "patElectronsPFlow"
+#looseIn = "patElectronsPFlow"
+#looseInExclusive = ""
+#jetsIn  = "patJetsPFlow"   # "ak5CaloJets"  
+#genIn   = "genParticles"     ## tightIn = "cleanPatElectrons"
 tightIn = "cleanPatElectrons"
 looseIn = "cleanPatElectrons"
 looseInExclusive = ""
-jetsIn  = "patJetsAK5Calo"   # "ak5CaloJets"  
+jetsIn  = "patJets" #"patJetsAK5Calo"= calo  "patJets "=PF
 genIn   = "genParticles"
-matchTo = "MC" ## options: RECO/MC
+matchTo = "RECO" ## options: RECO/MC
 zIn = " "
 if ( matchTo=="MC" ): print "Jet counts matched to MC electrons\n"
 else:  print "Jet counts matched to reco electrons\n"
@@ -81,6 +82,16 @@ for cutnum in range(len(cutList)):
                                       )
 
         
+    if cutList[cutnum].type == "t ext": # use generic trigger event flag in the aggregator, no filtering in the normal sequence
+        # construct PSet for counter
+        counterConfig.filters.append( cms.PSet(order = cms.double(cutList[cutnum].order),
+                                               cutVal= cms.int32(cutList[cutnum].n),
+                                               tightIn = cms.InputTag(looseIn),
+                                               looseIn = cms.InputTag(''),
+                                               type = cms.string(cutList[cutnum].type)
+                                               )
+                                      )
+        
     if cutList[cutnum].type == "gen": # add filters on generator particles
         assert ("genIn" in globals().keys()), "gen level cut specified, but no generator colelction given"
         modulename = cutList[cutnum].label+"GenSelector"
@@ -127,7 +138,7 @@ for cutnum in range(len(cutList)):
         modulename = cutList[cutnum].label+"ZChris" 
         globals()[modulename] = cms.EDProducer("SinPhiMETMHT")
         setattr(globals()[modulename],'zIn',cms.InputTag( zIn ))
-        setattr(globals()[modulename],'metIn',cms.InputTag( "patMETs"  ))
+        setattr(globals()[modulename],'metIn',cms.InputTag( "met"))
         VBSequence *= globals()[modulename]
         zIn =  modulename
         # construct PSet for counter
@@ -140,6 +151,19 @@ for cutnum in range(len(cutList)):
                                       )
 
 
+    if cutList[cutnum].type == "separator": # any cuts after this go into the psequence that's processed after PAT
+        # prepare merged electron collection
+        modulename = cutList[cutnum].label+"mergedEleIn"
+        globals()[modulename] = cms.EDProducer('CandViewMerger')
+        setattr(globals()[modulename],'src',cms.VInputTag(tightIn,looseInExclusive))
+        VBSequence *= globals()[modulename]
+        modulename = cutList[cutnum].label+"Vec"
+        globals()[modulename] = cms.EDProducer('VecFromView')
+        setattr(globals()[modulename],'src',cms.InputTag( cutList[cutnum].label+"mergedEleIn" ))
+        VBSequence *= globals()[modulename]
+        VBSequencePre = VBSequence
+        VBSequencePre.remove(tmp)
+        VBSequence = cms.Sequence(tmp)
 
 
 #prepare collection for jet counting: MC or RECO
@@ -167,9 +191,15 @@ setattr(globals()[modulename],"checkOverlaps",tmpclean )
 VBSequence *= globals()[modulename]
 jetsIn=modulename
 # finish counter configuration
-counterConfig.jetsIn = cms.InputTag(jetsIn)
-counterConfig.jetLabel = cms.string("recojets")
-counterConfig.ncutsintree = cms.int32(18)  # 18=Z 20=W
+counterConfig.jetsIn         = cms.InputTag(jetsIn)
+counterConfig.jetLabel       = cms.string("recojets")
+counterConfig.ncutsintree    = cms.int32(18)  # 18=Z 20=W
+counterConfig.verbosityLevel = cms.uint32(2)
+counterConfig.andOr          = cms.bool( False )
+counterConfig.hltPaths       = cms.vstring('HLT_Ele15_LW_L1R')
+counterConfig.hltInputTag    = cms.InputTag('TriggerResults::REDIGI')
+counterConfig.andOrHlt       = cms.bool( True )
+counterConfig.errorReplyHlt  = cms.bool( False )
 VBSequence*=counterConfig
 #cut before ntuple creation
 ntupleFilter = cms.EDFilter("CandViewCountFilter",
@@ -207,12 +237,39 @@ goodZToEEEdmNtuple = cms.EDProducer("CandViewNtpProducer",
                                                            cms.PSet( tag = cms.untracked.string("e2Phi"),
                                                                      quantity = cms.untracked.string("daughter(1).phi")
                                                                      ), 
-                                                           cms.PSet( tag = cms.untracked.string("sinPhiMETMHT"),
-                                                                     quantity = cms.untracked.string("userFloat('sinPhiMETMHT')")
-                                                                     ),                                                            
+                                                          cms.PSet( tag = cms.untracked.string("sinPhiMETMHT"),
+                                                                    quantity = cms.untracked.string("userFloat('sinPhiMETMHT')")
+                                                                    ),                                                            
+                                                          cms.PSet( tag = cms.untracked.string("PhiMET"),
+                                                                    quantity = cms.untracked.string("userFloat('PhiMET')")
+                                                                    ),                                                            
+                                                          cms.PSet( tag = cms.untracked.string("PhiSubMET"),
+                                                                    quantity = cms.untracked.string("userFloat('PhiSubMET')")
+                                                                    ),                                                            
+                                                          cms.PSet( tag = cms.untracked.string("PhiSubBoostMET"),
+                                                                    quantity = cms.untracked.string("userFloat('PhiSubBoostMET')")
+                                                                    ),                                                            
                                                            )  
                                     )
 VBSequence*=goodZToEEEdmNtuple
+goodjetsEdmNtuple = cms.EDProducer("CandViewNtpProducer",
+                                    src = cms.InputTag( jetsIn ),
+                                    lazyParser = cms.untracked.bool(True),
+                                    prefix = cms.untracked.string("jets"),
+                                    eventInfo = cms.untracked.bool(True),
+                                    variables = cms.VPSet( 
+                                                           cms.PSet( tag = cms.untracked.string("Eta"),
+                                                                     quantity = cms.untracked.string("eta")
+                                                                     ),
+                                                           cms.PSet( tag = cms.untracked.string("Phi"),
+                                                                     quantity = cms.untracked.string("phi")
+                                                                     ), 
+                                                           cms.PSet( tag = cms.untracked.string("Et"),
+                                                                     quantity = cms.untracked.string("et")
+                                                                     ),
+                                                           )  
+                                    )
+VBSequence*=goodjetsEdmNtuple
         
 
 VBSequence.remove(tmp)

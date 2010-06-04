@@ -17,8 +17,10 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
 #include "DataFormats/PatCandidates/interface/MET.h"
+#include "DataFormats/METReco/interface/MET.h"
 #include "DataFormats/PatCandidates/interface/CompositeCandidate.h"
 #include "CommonTools/CandUtils/interface/Booster.h"
+#include <Math/VectorUtil.h>
 
 SinPhiMETMHT::SinPhiMETMHT(const edm::ParameterSet& pset)
 {
@@ -48,7 +50,7 @@ void SinPhiMETMHT::produce(edm::Event& iEvent, const edm::EventSetup& es)
 {
   //find njets for binning
   edm::Handle< edm::View<reco::CompositeCandidate> > ZColl;
-  edm::Handle< edm::View<pat::MET> > METColl;
+  edm::Handle< edm::View<reco::CaloMET> > METColl;
   iEvent.getByLabel(zIn,ZColl);
   iEvent.getByLabel(metIn,METColl);
 
@@ -57,7 +59,7 @@ void SinPhiMETMHT::produce(edm::Event& iEvent, const edm::EventSetup& es)
 
   for(edm::View<reco::CompositeCandidate>::const_iterator zorig = ZColl->begin() ; zorig != ZColl->end() ; zorig++ ){
     // read MET and determine vertex used in MET reco
-    pat::MET * subMET =  (*METColl)[0].clone();
+    reco::LeafCandidate * subMET =  (*METColl)[0].clone();
     math::XYZPoint vtx = subMET->vertex();
     
     //get hold of supercluster positions at get their 4-vectors
@@ -73,21 +75,27 @@ void SinPhiMETMHT::produce(edm::Event& iEvent, const edm::EventSetup& es)
     reco::Particle::LorentzVector p42(momentum2.x(), momentum2.y(), momentum2.z(), cluster2->energy() );
     
     reco::Particle::LorentzVector p4Z = p41+p42;
-    math::XYZVector boostvector = momentum1 + momentum2;
+    math::XYZVector boostvector = (momentum1 + momentum2).unit()*p4Z.Beta() ;
 
     //subtract Z from calo MET
     subMET->setP4( (*METColl)[0].p4() + p4Z  );
  
  
     // boost MET
-    pat::MET * boostSubMET = subMET->clone();
+    reco::LeafCandidate * boostSubMET = subMET->clone();
     
+    //std::cout << "bareboost: " << ROOT::Math::VectorUtil::boost( p4Z, boostvector ).x() << " " <<  ROOT::Math::VectorUtil::boost( p4Z, boostvector ).y() << " " << ROOT::Math::VectorUtil::boost( p4Z, boostvector ).z() <<std::endl;   
     Booster booster( boostvector );
     booster.set(*boostSubMET);
+
+   
     
     //clone Z and add sinphi variable
     pat::CompositeCandidate newZ( *zorig ); 
-    newZ.addUserFloat( "sinPhiMETMHT", sin(subMET->phi() - boostSubMET->phi()));
+    newZ.addUserFloat( "sinPhiMETMHT", sin(subMET->phi() - boostSubMET->phi()));//- boostSubMET->phi()));
+    newZ.addUserFloat( "PhiMET",    (*METColl)[0].phi() );//- boostSubMET->phi()));
+    newZ.addUserFloat( "PhiSubMET", subMET->phi() );//- boostSubMET->phi()));
+    newZ.addUserFloat( "PhiSubBoostMET", boostSubMET->phi() );//- boostSubMET->phi()));
     out.push_back(newZ);
     
     delete boostSubMET;

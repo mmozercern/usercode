@@ -53,6 +53,7 @@ EffAggregator::EffAggregator(const edm::ParameterSet& pset)
     cutTypes.push_back(filterconf->getParameter<std::string>("type"));
     
   } // END of loop over parameter sets
+  genericTriggerEventFlag_ = new GenericTriggerEventFlag( pset );
 
 }
 
@@ -62,8 +63,15 @@ EffAggregator::~EffAggregator()
 {
     // do anything here that needs to be done at desctruction time
    // (e.g. close files, deallocate resources etc.)
+  delete genericTriggerEventFlag_;
+
 }
 
+void EffAggregator::beginRun( const edm::Run& run, const edm::EventSetup& setup ) {
+  
+  //std::cout << "triggerconf: " << genericTriggerEventFlag_->on() << std::endl;
+  if ( genericTriggerEventFlag_->on() ) genericTriggerEventFlag_->initRun( run, setup );
+}
 
 //
 // member functions
@@ -76,14 +84,16 @@ void EffAggregator::analyze(const edm::Event& iEvent, const edm::EventSetup& es)
   edm::Handle< edm::View<pat::Jet> > jetCounter;
   iEvent.getByLabel(jetsIn,jetCounter);
 
-  std::cout << std::endl;
-  for( edm::View<pat::Jet>::const_iterator jet = jetCounter->begin() ; jet!=jetCounter->end();jet++){
-    std::cout << jet->hasCorrFactors() << " "  << jet->corrStep().c_str() << " XXX" ;
- //     std::cout << jet->phi() << " " << jet->eta() << " "  <<jet->pt() << std::endl;
+  //  std::cout << "HERE" << std::endl;
+  //for( edm::View<pat::Jet>::const_iterator jet = jetCounter->begin() ; jet!=jetCounter->end();jet++){
+    //    std::cout << (jetCounter->begin()==jetCounter->end()) << std::endl;
+//  std::cout << jet->hasCorrFactors() << " "  << jet->corrStep().c_str() << " XXX" ;
+//     std::cout << jet->phi() << " " << jet->eta() << " "  <<jet->pt() << std::endl;
 //     std::cout << jet->energyFractionHadronic() <<std::endl ;
 
-  }
-
+    //}
+  //std::cout << "YYY" << std::endl;
+  
   
   
   int njet = jetCounter->size();
@@ -92,7 +102,7 @@ void EffAggregator::analyze(const edm::Event& iEvent, const edm::EventSetup& es)
   //count all events
   count(njet,0);
   
-  std::cout << "njet: " << njet <<std::endl;
+  //std::cout << "njet: " << njet <<std::endl;
 
   //std::cout <<"Analyzer: " << njet << "jets"<< std::endl;
   // loop over all cuts
@@ -102,6 +112,7 @@ void EffAggregator::analyze(const edm::Event& iEvent, const edm::EventSetup& es)
     if(cutTypes[i]=="e")            {pass = fill_eselection(iEvent,i,njet);}
     else if (cutTypes[i]=="e ex")   {pass = fill_eselection(iEvent,i,njet);}
     else if (cutTypes[i]=="trigger"){pass = fill_eselection(iEvent,i,njet);}
+    else if (cutTypes[i]=="t ext")  {pass = genericTriggerEventFlag_->accept( iEvent, es ); }
     else if (cutTypes[i]=="jet")    {} // do nothing
     else if (cutTypes[i]=="mee")    {pass = fill_genericselection(iEvent,i,njet);}
     else if (cutTypes[i]=="gen")    {pass = fill_genericselection(iEvent,i,njet);}
@@ -155,10 +166,10 @@ bool EffAggregator::fill_genericselection(const edm::Event& iEvent,int icut, int
   edm::Handle< edm::View<reco::Candidate> > gen;
   iEvent.getByLabel(tightIn[icut],gen);
 
-  std::cout << "generic: " << order[icut]  << std::endl;
+  //std::cout << "generic: " << order[icut]  << std::endl;
   if(order[icut] == 1){
-    for( edm::View<reco::Candidate>::const_iterator jet = gen->begin() ; jet!=gen->end(); jet++)    
-      std::cout << "gen ele:" << jet->phi() << " " << jet->eta() << " "  <<jet->pt() << std::endl;
+    //for( edm::View<reco::Candidate>::const_iterator jet = gen->begin() ; jet!=gen->end(); jet++)    
+      //std::cout << "gen ele:" << jet->phi() << " " << jet->eta() << " "  <<jet->pt() << std::endl;
   }
 
   if( (int)gen->size() >= cutVals[icut] ) pass = true;  
