@@ -1,0 +1,20 @@
+
+   [Parameters]
+matched_MassCBmean =  405.20 C L(200 - 800) 
+matched_MassCBsigma =  16.954 +/- 0.46608 C L(1 - 100) 
+matched_MassCBalpha1 =  0.83388 +/- 0.046371 C L(0 - 20) 
+matched_MassCBn1 =  4.9615 +/- 0.39326 C L(0 - 20) 
+matched_MassCBalpha2 =  0.89605 +/- 0.036184 C L(0 - 20) 
+matched_MassCBn2 =  4.6377 +/- 0.22175 C L(0 - 20) 
+matchsel_njets = NULL
+unmatched_Mass_start = -35.8701 C L(-800 - -1) 
+unmatched_Mass_turn =  260.23 +/- 7.4994 C L(200 - 800) 
+unmatched_Mass_stop =  240.74 C L(1 - 800) 
+unmatched_MassCBmean =  0.0000 C L(-INF - +INF) 
+unmatched_MassCBsigma =  14.990 C L(0 - 500) 
+unmatched_MassCBalpha = -0.379438 C L(-10 - 10) 
+unmatched_MassCBn =  5.7389 C L(0 - 20) 
+unmatchedsel_njets = NULL
+N_matched =  0.84260 C L(0 - 1) 
+
+   [Observables]
