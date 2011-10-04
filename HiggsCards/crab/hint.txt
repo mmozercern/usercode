@@ -1,0 +1,7 @@
+foreach i ( `ls -1 | grep "[0-9][0-9][0-9]" | grep -v r ` )
+
+cd $i
+../../../../../scripts/text2workspace.py CMS_hzz2l2q_${i}_6channels.txt -b -m $i -o model.root
+cd ..
+
+bjobs | grep -v JOBID | awk '{print $1}' | xargs bkill
