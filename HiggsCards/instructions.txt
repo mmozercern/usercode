@@ -1,0 +1,219 @@
+TO RUN BAYESIAN LIMITS ON LSF QUEUE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1) make a directory containing many subdirs, called as the mass point (e.g.: "200", "250", "320"). Each subdor must contain the six cards and workspaces for the six channels.
+
+$MYDIR/200/
+$MYDIR/202/
+...
+$MYDIR/600/
+
+the scripts must be inside $MYDIR
+
+2) for each mass dir, run the card merger:
+./myCombineCards.sh 200
+
+2b) you can also loop automatically: write a text file with a mass point 
+per line, call it masses.txt and then
+for M in $( cat masses.txt ); do ./myCombineCards.sh $M ; done
+
+3) prepare the combine_exec.sh.
+Set in the file:
+-) the statistical method for running the limits -> variable called "algo"
+-) according to what you have chosen, decomment the right 
+   line starting with 'combine...' at the end
+-) the number of toys per parallel job -> variable called "ntoys"
+
+4) prepare the parallelizeCombine.sh . 
+Set in the file:
+-) how many parallel jobs
+-) on which queue you want to run
+-) the stem of the name of the log file
+
+5) Run it for each mass point by doing
+./parallelizeCombine.sh 200
+It will submit n parallel jobs, for a total of njobs*ntoys pseudo-experiments
+
+5b) you can also loop automatically: 
+for M in $( cat masses.txt ); do ./parallelizeCombine.sh $M ; done
+
+6) when the jobs for a given mass point are done, many root files are saved 
+in a sub-directory in the mass dir. You must merge them with the 
+mergeCombinationFiles.sh script.
+
+./mergeCombinationFiles.sh  200
+or automatized in the usual way
+for M in $( cat masses.txt ); do ./mergeCombinationFiles.sh $M ; done
+In every sub-directory there will be a file with the label "TOTAL" in the name.
+Do ls 200/combine_2l2q_MarkovChainMC_CMS_hzz2l2q_200_6channels/*TOTAL* for
+seeing it.
+
+This is the plot with all the pseudo-exp for that given mass point, you
+should take the median for having the expected limit, the 2.5% and 97.5% 
+quantile for the 2 sigma band.
+
+For the observed limit, redo from scratch but take out the --t option
+in comine_exec.sh.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+HZZ2L2QRooPdfs.h va in HiggsAnalysis/CombinedLimit/interface
+e HZZ2L2QRooPdfs.cc insieme a LinkDef.h vanno in HiggsAnalysis/CombinedLimit/src
+
+Poi devi ricordarti di gSystem->Load("libHiggsAnalysisCombinedLimit.so");
+
+nel rootlogon, e non devi più caricarti a mano le librerie.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+TO RUN CLs ON THE GRID
+~~~~~~~~~~~~~~~~~~~~~~~
+
+https://twiki.cern.ch/twiki/bin/view/CMS/HiggsCombinationPreApproval
+
+
+V01-10-00                     HiggsAnalysis/CombinedLimit
+
+cmsenv
+source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.csh
+
+for M in $(cat masses.txt); do bash make_combined_cards.sh $M; done
+cerca di farlo per tutti i canali quindi da' errore per gli altri
+ma non c'e' problema
+
+for M in $(cat masses.txt); do bash make_binary_workspaces.sh $M comb_hzz2l2q.txt; done
+
+for M in $(cat masses.txt); do bash make_grid.sh --go $M comb_hzz2l2q.root; done
+questo fa la sottomissione alla grid vera e propria
+# grid points n
+# toys T
+(dividere masses.txt in diversi file)
+
+for M in $(cat masses.txt); do bash watch_grid.sh  $M comb_hzz2l2q.root; done
+fa il getoutput ed il resubmit
+
+for M in $(cat masses.txt); do bash make_FREQ.sh $M comb_hzz2l2q.root; done
+fa il p-value scan:
+E050 = mediana attesa
+E016 = banda up 68%
+E084 = banda down 68%
+E0025 = banda up 95%
+E0975 = banda down 95%
+FREQX = osservato
+
+bash harvest.sh FREQ hzz2l2q
+mette tutto in unico rootfile
+
+Nel caso in cui le bande vanno oltre il range definito dal PL
+e ingeneraler per aggiunegre statistica:
+for M in $(cat masses.txt); do bash make_grid.sh --go --exp  $M comb_hzz2l2q.root; done
+sottomette altri jobs usando risultato precednete come starting value (invece di PL)
+
+Nel caso in cui il PL scazza -controllare il log PLC
+e sovrascriverlo con:
+~~~~~~~
+All'interno della directory di massa:
+combine -M ProfileLikelihood -d comb_hzz2l2q.txt -n Test -m 200
+(cambiare punto di massa)
+
+All'esterno della directory di massa:
+bash make_PLC.sh 200 comb_hzz2l2q.root
+~~~~~~~~~~
+girare la grid per il singolo punto
+
+/////////////////////////////////SVN cards commit //////////////////////
+1. Try
+
+echo $SVNGRP
+
+You must set SVNGRP to:
+
+SVNGRP=svn+ssh://svn.cern.ch/reps/cmshcg
+
+2. To get the latest version of the repository and work on it
+
+- if you do not alreardy have a copy, do:
+
+ svn co $SVNGRP
+
+- if you already have a copy before, jist do an update:
+
+ cd cmshcg
+ svn update
+
+3. While you are working on the combination, you want to add new files
+or sub-directories:
+
+(a) to add a new file: go to the appropriate directory and do
+
+ svn add filename
+
+(b) to add a new sub-directory:
+
+  - make sure that the sub-directory already exist in your local area
+    and that you are in directory above the sub-directory that you want to
+do, then:
+  - to add the sub-directory to SVN repository
+
+     svn add SubdirectoryName
+
+4. Maybe you are not happy with a file and you want to remove it.
+To remove a file
+
+ rm filename
+ svn rm filename
+
+5. You are happy with your changes and you want to commit
+the new version to the SVN repository:
+
+ (a) make sure that you are in the main directory cmshcg or cmshcg/trunk
+
+ (b) then use the command to commit your changes:
+
+  svn ci -m "your comments"
+
+6. It is recommended to tag your changes so that your changes can be referred
+to by some specify tag. This is also important in case some files get
+corrupted,
+accidentally deleted, etc, and we want recover everything starting from a
+specific tag that we know is OK.
+
+ (a) make sure that you are in the main directory cmshcg/trunk
+
+ (b) make sure that you have committed your changes as described in
+step 5 above.
+
+ (c) Now you are ready to tag your changes using this command:
+
+  svn cp . $SVNGRP/tags/cmshcg-IJ-KL-MN
+
+where -IJ-KL-MN must be numbers such as -00-00-01. You must use a tag
+that is not already used.
+IJ are primary tags numbers and they mean that your changes/revisions
+are very substantial
+and people people should take note. KL are medium tag numbers for
+important revisions but not
+extremely substantial. Finally MN the tag number for minor, ordinary
+revisions. Most of the
+time, you will simply increment sequentially the tags number N or M.
+
+7. To check out a specific tag version, do this:
+
+svn co $SVNGRP/tags/cmshcg-IJ-KL-MN .
+
+8. SVN Updates
+
+Suppose  that after several days you come back to continue working on your
+local copy of the repository. Mean while, other people have commit their version
+into the SVN repository so that the current version in the repository is not
+no longer consistent with your local copy. You need to update your local copy
+before working on it further. For this, use the command in the main directoy
+cmshcg:
+
+  svn update
+
+9. Web view
+
+The repository can be browsed on the web at the link:
+
+  https://svn.cern.ch/reps/cmshcg/
