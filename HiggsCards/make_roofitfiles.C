@@ -30,6 +30,7 @@
 #include "TFile.h"
 #include "TSystem.h"
 #include "TROOT.h"
+#include "TTree.h"
 
 using namespace std;
 //using namespace ROOT::Math;
@@ -62,7 +63,7 @@ void make_roofitfiles(int btag, int chan, double massH, double sigmaH, double &o
 
   //integration window
   double effWidth=sqrt(sigmaH*sigmaH+100);  // effective width used for defining window
-  double fitRangeLow=180.;
+  double fitRangeLow=183.;
   double fitRangeHigh=800.0; 
 
   cout<<"----- FIT RANGE : "<<fitRangeLow<<" - "<< fitRangeHigh<<endl;
@@ -84,29 +85,29 @@ void make_roofitfiles(int btag, int chan, double massH, double sigmaH, double &o
   vector<double> BKGparam;
   //eps ones
   if(btag==0){
-     BKGparam.push_back(186.41); //cutoff
-     BKGparam.push_back(5.257); //beta
-     BKGparam.push_back(222.72); //mean
-     BKGparam.push_back(-.116428); //width
-     BKGparam.push_back(13.39); //n
-     BKGparam.push_back(54.704); //alpha
-     BKGparam.push_back(1.589); //theta
+     BKGparam.push_back(188.30); //cutoff
+     BKGparam.push_back(3.6071); //beta
+     BKGparam.push_back(222.81); //mean
+     BKGparam.push_back(0.23687); //width
+     BKGparam.push_back(14.172); //n
+     BKGparam.push_back(-53.7855); //alpha
+     BKGparam.push_back(-1.54950); //theta
      }else if(btag==1){
-     BKGparam.push_back(184.04);
-     BKGparam.push_back(3.225);
-     BKGparam.push_back(166.6);
-     BKGparam.push_back(87.467);
-     BKGparam.push_back(21.499);
-     BKGparam.push_back(.24946);
-     BKGparam.push_back(0.0162); //theta
+     BKGparam.push_back(184.12);
+     BKGparam.push_back(2.9721);
+     BKGparam.push_back(190.26);
+     BKGparam.push_back(0.22563);
+     BKGparam.push_back(9.2838);
+     BKGparam.push_back(-65.6657);
+     BKGparam.push_back(-1.55200); //theta
      }else if(btag==2){
-     BKGparam.push_back(182.32);
-     BKGparam.push_back(2.84922);
-     BKGparam.push_back(226.23);
-     BKGparam.push_back(72.124);
-     BKGparam.push_back(2.75833);
-     BKGparam.push_back(-.45718);
-     BKGparam.push_back(0.0166); //theta
+     BKGparam.push_back(188.30);
+     BKGparam.push_back(3.6071);
+     BKGparam.push_back(222.81);
+     BKGparam.push_back(0.23690);
+     BKGparam.push_back(14.172);
+     BKGparam.push_back(-53.7855);
+     BKGparam.push_back(-1.54950); //theta
   }
   
   // -------------------- fermi ---------------------------
@@ -143,17 +144,17 @@ void make_roofitfiles(int btag, int chan, double massH, double sigmaH, double &o
   ////Fill dataset with REAL DATA 
 
   RooRealVar nBTags("nBTags","nBTags",-1.,3.);
-  RooRealVar eventWeight("eventWeight","eventWeight",0,100.);
-  RooRealVar mZjj("mZjj","mZjj",0,150.);
-  RooRealVar leptType("leptType","lepton type",-1,2);
+  RooRealVar eventWeight("weight","weight",0,100.);
+  RooRealVar mZjj("mJJ","mJJ",0,150.);
+  RooRealVar leptType("lep","lep",-1,2);
 
   string btag_sel="dummy";
   if(btag==0)btag_sel="nBTags==0.0";
   else if(btag==1)btag_sel="nBTags==1.0";
   else if(btag==2)btag_sel="nBTags==2.0";
   else btag_sel="DUMMYnBTags==99.0";
-  string lept_sel= chan==0 ? "leptType==1.0" :"leptType==0.0" ;//opposite convention btw Francesco and me
-  string tree_sel= btag_sel+" && mZjj>75.0 && mZjj<105.0 && "+lept_sel;
+  string lept_sel= chan==0 ? "lep==0.0" :"lep==1.0" ;//ele=0,mu=1
+  string tree_sel= btag_sel+" && mJJ>75.0 && mJJ<105.0 && "+lept_sel;
   stringstream ossmzz1;
   ossmzz1 << float(fitRangeLow);
   string mzzcut="CMS_hzz2l2q_mZZ>"+ossmzz1.str(); 
@@ -164,12 +165,16 @@ void make_roofitfiles(int btag, int chan, double massH, double sigmaH, double &o
   tree_sel+=" && "+mzzcut;
  
 
-  TFile* file = new TFile("./convertedTree_LP_20110811.root");
+  //  TFile* file = new TFile("./convertedTree_LP_20110811.root");
+  TFile* file = new TFile("./summer11_data_highmass.root");
+  TTree* tree = (TTree*)file->Get("AngularInfo");
+                                   
+  tree->GetBranch("mZZ")->SetName("CMS_hzz2l2q_mZZ");
   RooFormulaVar cut1("mycut1",tree_sel.c_str(),RooArgList(CMS_hzz2l2q_mZZ,nBTags,mZjj,leptType));
-  RooDataSet *dataset_obs_orig=new RooDataSet("dataset_obs_orig","dataset_obs_orig",(TTree*)file->Get("tree_passedEvents"),
+  RooDataSet *dataset_obs_orig=new RooDataSet("dataset_obs_orig","dataset_obs_orig",tree,
 					      RooArgSet(CMS_hzz2l2q_mZZ,nBTags,mZjj,leptType),
-					      cut1,"eventWeight");
-
+                                              cut1);
+  dataset_obs_orig->Print("v");
   obs_yield=double(dataset_obs_orig->numEntries());
 
   RooArgSet *newMZZargset= new RooArgSet(CMS_hzz2l2q_mZZ);
@@ -292,9 +297,9 @@ void make_roofitfiles(int btag, int chan, double massH, double sigmaH, double &o
   EvtNorm.push_back(chan==1? 24.3 : 20.3 );  // 2btag*/
 
   //for LP
-  EvtNorm.push_back(chan==1? 575.85 : 490.54 );  // 0btag 
-  EvtNorm.push_back(chan==1? 606.78 : 526.86 );  // 1btag 
-  EvtNorm.push_back(chan==1? 41.14 : 35.37 );  // 2btag
+  EvtNorm.push_back(chan==1? 731. : 645. );  // 0btag 
+  EvtNorm.push_back(chan==1? 789. : 707. );  // 1btag 
+  EvtNorm.push_back(chan==1? 58.5 : 46.  );  // 2btag
 
   string mzzcut2="CMS_hzz2l2q_mZZfull>"+ossmzz1.str(); 
   mzzcut2+="&&CMS_hzz2l2q_mZZfull<"+ossmzz2.str();

@@ -1,6 +1,7 @@
 //ROOTFIT_INCLUDE := $(shell cd $(CMSSW_BASE); scram tool info roofitcore | grep INCLUDE= | sed 's|INCLUDE=||')
 //.L PDFs/RooFermi.cc++
 //.L PDFs/RooDoubleCB.cc++
+//.L PDFs/Triangle.cc++
 //.L PDFs/RooCB.cc++
 //.L PDFs/RooRelBW.cc++
 //.L make_roofitfiles.C++
@@ -28,8 +29,8 @@
 const int nbtag=3; //btag0, btag1 and btag2
 const int nprod=2; //VBF and gg
 const int nchan=2;//2e2j and 2m2j
-const float lumiee=1.556; //fb^-1, NEW!
-const float lumimm=1.615; //fb^-1, NEW!
+const float lumiee=2.1;//1.556; //fb^-1, NEW!
+const float lumimm=2.1;//1.615; //fb^-1, NEW!
 const int nmass=15;
 const bool isSM4=false; // if true add .15 to CSgg and CSvbf errors 
 const float mass[nmass]={190.0,200.0,210.0,230.0,250.0, 
@@ -758,15 +759,15 @@ string make_bakcgrNormErrLine(double expyields, int btag, int ich){
   if(btag==0){
     str_btag="0b";
     if(ich==0){ //electrons
-      str_neventsSB="529";
-      alpha=expyields/529.;
+      str_neventsSB="756";
+      alpha=expyields/756.;
       std::ostringstream ossa;
       ossa<<alpha;
       str_alpha=ossa.str();
     }
     else if(ich==1){ //muons
-      str_neventsSB="621";
-      alpha=expyields/621.;
+      str_neventsSB="850";
+      alpha=expyields/850.;
       std::ostringstream ossa;
       ossa<<alpha;
       str_alpha=ossa.str();
@@ -775,15 +776,15 @@ string make_bakcgrNormErrLine(double expyields, int btag, int ich){
   else if(btag==1){
     str_btag="1b";
     if(ich==0) {//electrons
-      str_neventsSB="534";
-      alpha=expyields/534.;
+      str_neventsSB="745";
+      alpha=expyields/745.;
       std::ostringstream ossa;
       ossa<<alpha;
       str_alpha=ossa.str();
     }
     else if(ich==1){ //muons
-      str_neventsSB="615";
-      alpha=expyields/615.;
+      str_neventsSB="828";
+      alpha=expyields/789.;
       std::ostringstream ossa;
       ossa<<alpha;
       str_alpha=ossa.str();
@@ -792,15 +793,15 @@ string make_bakcgrNormErrLine(double expyields, int btag, int ich){
   else if(btag==2){
     str_btag="2b";
     if(ich==0) {//electrons
-      str_neventsSB="37";
-      alpha=expyields/37.;
+      str_neventsSB="46";
+      alpha=expyields/46.;
       std::ostringstream ossa;
       ossa<<alpha;
       str_alpha=ossa.str();
     }
     else if(ich==1) {//muons
-      str_neventsSB="44"; 
-      alpha=expyields/44.;
+      str_neventsSB="60"; 
+      alpha=expyields/60.;
       std::ostringstream ossa;
       ossa<<alpha;
       str_alpha=ossa.str();

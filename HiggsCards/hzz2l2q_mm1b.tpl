@@ -37,6 +37,6 @@ CMS_hzz2l2q_pu		lnN		1.02	        1.02		1.0
 #CMS_hzz2l2q_sig1bp5
 CMS_hzz2l2q_bkg1bmmp0   <dummybnorm>
 #CMS_hzz2l2q_bkg1bp1        param  166.6  ---
-CMS_hzz2l2q_bkg1bp2         param  87.4666 7.03731
+CMS_hzz2l2q_bkg1bp2         param  0.22563 0.039723 
 #CMS_hzz2l2q_bkg1bp3      param   21.499 ---  
-CMS_hzz2l2q_bkg1bp4         param  0.249461  0.0552891
+CMS_hzz2l2q_bkg1bp4         param  -65.6657  6.0612
