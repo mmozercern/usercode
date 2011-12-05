@@ -1,0 +1,77 @@
+https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/HiggsCombination
+https://twiki.cern.ch/twiki/bin/view/CMS/SWGuideHiggsAnalysisCombinedLimit 
+https://svn.cern.ch/reps/cmshcg/svn.howto
+
+cvs co -A HiggsAnalysis/CombinedLimit
+
+
+**********************************  ROOSTATS   **************************************
+*) ProfileLikelihood
+combine -M ProfileLikelihood -s $myrand -d $datacard -U
+
+*) MCMC
+Comando di base e' :
+combine -M MarkovChainMC -n $label -m $mass  -s $myrand -t $ntoys  -d $datacard -H ProfileLikelihood -U
+
+-U : unbinned analysis, altrimenti binned. Se vuoi cut&count, devi cambiare le datacards
+
+Puoi anche girarlo sottomettendo in parallelo alle batch queues con questi tre scripts:
+combine_exec.sh -> tutti i settings sono li', cambiali
+parallelizeCombine.sh -> steering di combine_exec , scegli quanti job parallelizeCombine
+mergeCombinationFiles.sh -> fai il merge dei root file prodotti dai job paralleli con hadd
+
+*) CLs a.k.a. HybridNew
+
+combine -M HybridNew -n $label -m $mass -d $datacard -H ProfileLikelihood -U
+
+
+Run with CRAB:
+in HiggsAnalysis/CombinedLimit/test c'e' makeGridUsingCrab.py
+python makeGridUsingCrab.py hzz2l2q_6channels.300.new.txt 0.5 5 -n 19 -T 100 -t 100 -j 100 -r -o HybridFreq_2l2j_6Channel
+crab -cfg HybridFreq_2l2j_6Channel.cfg -create -submit 
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+https://twiki.cern.ch/twiki/bin/view/CMS/HiggsCombinationPreApproval#Ad_interim_instructions_for_RooS
+
+
+1) create text files with one number for each line, corresponding to a mass point. Call them masses1.txt, masses2.txt... 
+This will allow to parallelize the submission and monitoring on the grid.
+2) open as many shells as these files, log on a different lxplus node for each and do 
+
+*) for M in $(cat masses1.txt); do bash make_combined_cards.sh $M; done
+Ignore the error messages, the script is looking for cards that don't exist.
+In the end, it will create in every directory of mass a file called      comb_hzz2l2q.txt
+
+*) for M in $(cat masses1.txt); do bash make_binary_workspaces.sh $M comb_hzz2l2q.txt; done
+
+*) for M in $(cat masses1.txt); do bash make_grid.sh --go $M comb_hzz2l2q.root; done
+
+   If it is the nth time you submit and want to keep jobs separated add "-2" or "-3" or... after --go
+   for M in $(cat masses1.txt); do bash make_grid.sh --go -2 $M comb_hzz2l2q.root; done
+
+   If you want to use the xpected limits instead of the default PL:
+   for M in $(cat masses1.txt); do bash make_grid.sh --go -2 --exp $M comb_hzz2l2q.root; done
+
+   By default, range of scan of points goes from 0.25*PL to 3*PL. PL can be replaced by expected limit
+   with the line above. If you want to change the range, you must edit by hand make_grid.sh
+
+*) As the jobs run on the grid, use the watch_grid script for monitoring and automatic retrieval/resubmission:
+   for M in $(cat masses1.txt); do bash watch_grid.sh $M >> log_masses1_a.out ; done
+
+   If you want to force the resubmit of the Scheduled jobs (you may want this if you notice them hanging on for
+   a long time
+   for M in $(cat masses1.txt); do bash watch_grid.sh $M 1 >> log_masses1_a.out ; done
+
+*) when everything is done, 
+    for M in $(cat masses1.txt); do bash make_FREQ.sh $M comb_hzz2l2q.root; done
+
+*)  bash harvest.sh FREQ hzz2l2q
+   does the harvesting. It produces a file higgsCombineHZZ2L2Q_FREQ.root with a TTree that contains all the necessary
+    infos: obs limit (quantileExpected= -1) and the different quantile points for the expected limit.
+    
+
+If you want to run limits on XS(*BR) you must reproduce the same cards but without theoretical uncertainties.
