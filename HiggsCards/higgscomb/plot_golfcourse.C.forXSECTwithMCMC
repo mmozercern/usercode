@@ -1,0 +1,592 @@
+#include <Riostream.h>
+#include <string>
+#include <vector>
+#include <sstream>
+//#include <cstdlib>
+#include <math.h>
+#include "TTree.h"
+#include "TStyle.h"
+#include "TPaveText.h"
+#include "TH1D.h"
+#include "TFile.h"
+#include "TROOT.h"
+#include "TGraphAsymmErrors.h"
+#include "TCanvas.h"
+#include "TLine.h"
+#include "TLatex.h"
+#include "TLegend.h"
+#include <sys/stat.h>
+
+
+int checkFileExistence( string filename );
+void getSigmaBands(string fileName);
+void plot_golfcourse();
+void smoothing(double* in_centr,double* in_err, int np, bool up);
+void setFPStyle();
+
+
+const float intLumi=4.6;
+const int nMass=70;//71;
+vector<double> v_mh, v_median,v_68l,v_68h,v_95l,v_95h, v_obs;
+
+void plot_golfcourse(){
+  bool useNewStyle=true;
+  if(useNewStyle)  setFPStyle();
+
+  double massp[nMass]={200,202,204,206,208,210,212,214,216,218,220,222,224,226,228,230,232,234,236,238,240,242,244,246,248,250,252,254,256,258,260,262,264,266,268,270,272,274,276,278,280,282,284,288,290,295,300,305,310,315,320,325,330,335,340,345,350,360,370,380,390,420,440,460,480,500,540,560,580,600};
+
+  string mass_str[nMass];  
+  for(int imass=0; imass<nMass; imass++){
+    stringstream convert;
+    convert << massp[imass];
+    //cout << convert.str() << endl;
+    mass_str[imass]=convert.str();
+    //convert.str();
+  }
+
+
+  string filename;
+  double mhTemp,limitTemp;
+  double obs_lim_mcmc[nMass];
+
+  for(int im=0; im<nMass; im++){
+   
+    filename = mass_str[im]+"/combine_2l2q_MarkovChainMC_comb_hzz2l2q/higgsCombine2l2q.obs.MarkovChainMC.mH"+mass_str[im]+".TOTAL.root";
+    cout<<filename.c_str()<<flush;
+    // if( checkFileExistence(  filename ) ==0){
+    // cout<<" DOES NOT EXIST !"<<endl;
+    // continue;
+    //}
+    //else cout<<endl;
+cout<<endl;
+    TFile* fTemp = new TFile(filename.c_str());
+    TTree* tTemp = (TTree*) fTemp->Get("limit");
+    if(!tTemp){
+      cout<<"TTree named limit DOES NOT EXIST !"<<endl;
+      continue;
+    }
+    tTemp->SetBranchAddress("limit",&limitTemp);
+    tTemp->SetBranchAddress("mh",&mhTemp);
+    //    cout<<"prova2 "<<tTemp->GetEntries()<<endl;
+    double avg_obs=0.0, nobs=0.0;
+    for(int i=0;i<tTemp->GetEntries();i++){
+      tTemp->GetEntry(i);
+      nobs++;
+      avg_obs+=limitTemp;
+      if(i==0)v_mh.push_back(mhTemp);
+    }
+    //    cout<<"Avg "<<avg_obs<<" "<<nobs<<endl;
+
+    v_obs.push_back(avg_obs/nobs);
+    //    cout << "Observed Limit at " << v_mh.at(im) << " is " << v_obs[im] << endl;
+    delete tTemp;
+    fTemp->Close();
+  }//end loop on im, masses
+
+  for(int im=0;im<nMass;im++){
+    cout << mass_str[im] << endl;
+    filename = mass_str[im]+"/combine_2l2q_MarkovChainMC_comb_hzz2l2q/higgsCombine2l2q.exp.MarkovChainMC.mH"+mass_str[im]+".TOTAL.root";
+    //cout<<"expected for mass "<<mass_str[im].c_str()<<endl;
+    cout<<filename.c_str()<<endl;
+    getSigmaBands(filename);
+    cout<<"prova3"<<endl;
+  }
+
+
+
+  //read in theoretical values from text files
+  ifstream xsect_file("./xsect_higgs_173points_new.txt",ios::in);
+  if (! xsect_file.is_open()){ cout<<"Failed to open file with xsections"<<endl;}
+  float mHxs, CSgg, CSgg_p, CSgg_m, CSpdfgg_p,CSpdfgg_m,CSvbf, CSvbf_p, CSvbf_m,CSpdfvbf_p,CSpdfvbf_m, 
+    Gamma, BRHZZ, BRZZ2l2q;
+
+  vector<float> v_mhxs, v_ggxs,v_vbfxs, v_ggtoterrh,v_ggtoterrl,
+                v_vbftoterrh,v_vbftoterrl, v_gamma, v_brhzz, v_brzz2l2q;
+  while(xsect_file.good()){
+    xsect_file >> mHxs>> CSgg>> CSgg_p >> CSgg_m >>  CSpdfgg_p>> CSpdfgg_m>> CSvbf >> CSvbf_p >> CSvbf_m >>  CSpdfvbf_p>>CSpdfvbf_m>>Gamma >> BRHZZ >> BRZZ2l2q;
+    if(mHxs==600)cout<<"~~~~~ 600 theor ~~~~~~~~~~~~~"<<endl;
+    if(mHxs<200.0)continue;
+    v_mhxs.push_back(mHxs);
+    v_ggxs.push_back(CSgg*BRHZZ);//*BRZZ2l2q
+    v_vbfxs.push_back(CSvbf*BRHZZ);
+    // v_brhzz.push_back( BRHZZ);
+    // v_brzz2l2q.push_back(BRZZ2l2q);
+    //sum up linearly theor errors    
+    v_ggtoterrh.push_back(1.0+sqrt( pow((CSgg_p+CSpdfgg_p),2)+ pow((CSvbf_p+CSpdfvbf_p),2)));
+    v_ggtoterrl.push_back(1.0-sqrt( pow((CSgg_m+CSpdfgg_m),2)+ pow((CSvbf_m+CSpdfvbf_m),2)));
+    //v_ggtoterrh.push_back(1.0+CSgg_p+CSpdfgg_p+ CSvbf_p+CSpdfvbf_p);
+    // v_ggtoterrl.push_back(1.0+CSgg_m+CSpdfgg_m+ CSvbf_m+CSpdfvbf_m);
+  }
+  cout<<"Size of theor "<<v_mhxs.size()<<flush;
+  xsect_file.close();
+
+  //4th flavor generation
+  ifstream xsect_file4g("./xsect_higgs_173points_4generation.txt",ios::in);
+  if (! xsect_file4g.is_open()){ cout<<"Failed to open file with xsections"<<endl;}
+  float mHxs4g, CSgg4g, CSgg4g_p, CSgg4g_m, CSpdfgg4g_p,CSpdfgg4g_m,CSvbf4g, CSvbf4g_p, CSvbf4g_m,CSpdfvbf4g_p,CSpdfvbf4g_m, Gamma4g, BRHZZ4g, BRZZ2l2q4g;
+  vector<float> v_mhxs4g, v_ggxs4g, v_ggtoterr4gh,v_ggtoterr4gl,v_vbfxs4g;
+
+  while(xsect_file4g.good()){
+    xsect_file4g >> mHxs4g>> CSgg4g>> CSgg4g_p >> CSgg4g_m >>  CSpdfgg4g_p>> CSpdfgg4g_m>> 
+                             CSvbf4g >> CSvbf4g_p >> CSvbf4g_m >>  CSpdfvbf4g_p>>CSpdfvbf4g_m>>
+                             Gamma4g >> BRHZZ4g >> BRZZ2l2q4g;
+    if(mHxs4g<200.0)continue;
+    v_mhxs4g.push_back(mHxs4g);
+    v_ggxs4g.push_back(CSgg4g*BRHZZ4g);//*BRZZ2l2q4g
+    v_vbfxs4g.push_back(CSvbf*BRHZZ);
+    v_ggtoterr4gh.push_back(1.0+sqrt( pow((CSgg4g_p+CSpdfgg4g_p),2)+ pow((CSvbf4g_p+CSpdfvbf4g_p),2))+0.15);
+    v_ggtoterr4gl.push_back(1.0-sqrt( pow((CSgg4g_m+CSpdfgg4g_m),2)+ pow((CSvbf4g_m+CSpdfvbf4g_m),2))-0.15);
+
+     //v_ggtoterr4gh.push_back(1.0+CSgg4g_p+CSpdfgg4g_p+ CSvbf4g_p+CSpdfvbf4g_p+0.15);//15% more QED uncertainties for 4g model
+     //v_ggtoterr4gl.push_back(1.0+CSgg4g_m+CSpdfgg4g_m+ CSvbf4g_m+CSpdfvbf4g_m-0.15);
+    // cout<<"Filling 4g erro vector "<< mHxs4g<<": "<<(1.0+CSgg4g_m+CSpdfgg4g_m-0.15)<<"  "<<(1.0+CSgg4g_p+CSpdfgg4g_p+0.15)<<endl;
+  }
+  cout<<"  4g: "<<v_mhxs4g.size()<<endl;
+  xsect_file4g.close();
+  ///////////////
+
+  if(nMass!= int(v_mh.size())) cout<<"Inconsistency between nMass and size of vector with masses "<<nMass<<" vs "<< v_mh.size()<<endl;
+  double mass[nMass],mass1[nMass],obs_lim_cls[nMass]; 
+  double medianD[nMass];
+  double up68err[nMass],down68err[nMass],up95err[nMass],down95err[nMass];
+  double ggxs[nMass], ggxs_uperr[nMass], ggxs_downerr[nMass];
+  double ggxs4g[nMass], ggxs4g_uperr[nMass], ggxs4g_downerr[nMass];
+  int nMassEff=0,nMassEff1=0;
+  int nM95=0;
+  double mass95[nMass],median95[nMass];
+  int nexcluded=0;
+  bool excl; 
+  for(int im=0;im<nMass;im++){
+
+    //protection against messed up jobs
+    excl=false;
+    if(v_68h.at(im)>=v_95h.at(im) || v_68l.at(im)<=v_95l.at(im) ){
+      cout<<"Point at M = "<<v_mh.at(im) <<" excluded"<<endl;
+      nexcluded++;
+      // continue;
+      excl=true; 
+    }
+    //    if(im%2==1)excl=true;//sample only one half of the points
+
+    //search for right index in theor vectors
+    bool found=false;
+    int indtmp=0,ind=-1;
+    while(!found){
+      if(v_mhxs.at(indtmp)==v_mh.at(im)){found=true;ind=indtmp;}
+      indtmp++;
+      if(indtmp==v_mhxs.size()){
+	cout<<"!!! m="<<flush<<v_mh.at(im)<<" NOT found in theor matrix."<<endl;
+	break;
+      }
+    }//end while    
+   
+    //    if(v_mh.at(im)<226.0)found=false;
+
+    if(!found){
+      //   cout<<"(2) m="<<v_mh.at(im)<<" NOT found in theor matrix."<<endl;
+      continue;
+    }
+    //    else{
+    //if(v_mhxs.at(ind)!=v_mhxs4g.at(ind)){
+    //cout<<"Mismatch in index ! "<<ind<<"  "<<v_mhxs.at(ind)<<"  "<<v_mhxs4g.at(ind)<<endl;
+    //}
+    //}
+
+    //    cout<<"  Found mass "<<v_mh.at(im) <<", xs=  "<<v_ggxs.at(ind)<<endl;
+    double xs=double(v_ggxs.at(ind));
+    double xs4g=double(v_ggxs4g.at(ind));
+
+
+
+
+    mass[nMassEff]=v_mh.at(im);
+    //if( mass[nMassEff]==600.0)cout<<"=============> 600 !!!"<<endl;
+    obs_lim_cls[nMassEff]=v_obs.at(im)*xs;
+    nMassEff++;
+
+    if(!excl){
+      mass1[nMassEff1]=v_mh.at(im);
+      medianD[nMassEff1]=v_median.at(im)*xs;
+      up68err[nMassEff1]=(v_68h.at(im)-v_median.at(im))*xs;
+      down68err[nMassEff1]=(v_median.at(im)-v_68l.at(im))*xs;
+
+      
+      ggxs[nMassEff1]=xs+ v_vbfxs.at(im);
+      ggxs_uperr[nMassEff1]=double( v_ggtoterrh.at(ind))*ggxs[nMassEff1]- ggxs[nMassEff1];
+      ggxs_downerr[nMassEff1]=  ggxs[nMassEff1]- double( v_ggtoterrl.at(ind))* ggxs[nMassEff1];
+      ggxs4g[nMassEff1]=xs4g+v_vbfxs4g.at(im);
+      ggxs4g_uperr[nMassEff1]  =double( v_ggtoterr4gh.at(ind))*ggxs4g[nMassEff1] - ggxs4g[nMassEff1];
+      ggxs4g_downerr[nMassEff1]=ggxs4g[nMassEff1] - double( v_ggtoterr4gl.at(ind))*ggxs4g[nMassEff1];
+      //cout<<"Theor err on 4g for M="<<mass[nMassEff]<<"  "<< ggxs4g_downerr[nMassEff] << "  "<<ggxs4g_uperr[nMassEff]<<endl;
+      nMassEff1++;
+      
+
+      bool skip95= false;//
+      //skip95=v_mh.at(im)!=200&&v_mh.at(im)!=220&&v_mh.at(im)!=250&&v_mh.at(im)!=300&& v_mh.at(im)!=345&& v_mh.at(im)!=370 && v_mh.at(im)!=420  &&  v_mh.at(im)!=440  && v_mh.at(im)!=500 && v_mh.at(im)!=540 && v_mh.at(im)!=540 && v_mh.at(im)!=600;
+      
+      if(skip95 )continue;
+      mass95[nM95]=v_mh.at(im);
+      median95[nM95]=v_median.at(im)*xs;
+      up95err[nM95]=(v_95h.at(im)-v_median.at(im))*xs;
+      down95err[nM95]=(v_median.at(im)-v_95l.at(im))*xs;
+      nM95++;
+    
+    }//end if not excluded mass point
+  }//end loop over im (mass points)
+  cout<<"Excluded "<<nexcluded<<" sick mass points."<<endl;
+
+  //this is if you want to further filter mass points
+  const int nMassSel=11;
+  double massSel[nMassSel]={200,220,250,300,345,370,420,440,500,540,600};
+  double medianDSel[nMassSel];
+  double up68errSel[nMassSel],down68errSel[nMassSel],up95errSel[nMassSel],down95errSel[nMassSel];
+  int mInd=0;
+  for(int im=0;im<nMass;im++){
+    if(massp[im]==massSel[mInd]){
+      medianDSel[mInd]=medianD[im];
+      up68errSel[mInd]=up68err[im];
+      down68errSel[mInd]=down68err[im];
+      up95errSel[mInd]=up95err[im];
+      down95errSel[mInd]=down95err[im];
+      mInd++;
+    }
+  }//end loop on im
+ 
+
+  //  cout<<"Working on TGraph"<<endl;
+  TGraph *grobslim_cls=new TGraphAsymmErrors(nMassEff,mass,obs_lim_cls);
+  grobslim_cls->SetName("LimitObservedCLs");
+  // TGraph *grmedian_cls=new TGraphAsymmErrors(nMassEff1,mass1,medianD);
+  TGraph *grmedian_cls=new TGraphAsymmErrors(nMassSel,massSel,medianDSel);
+  grmedian_cls->SetName("LimitExpectedCLs");
+  TGraphAsymmErrors *gr68_cls=new TGraphAsymmErrors(nMassSel,massSel,medianDSel,0,0,down68errSel,up68errSel);
+  gr68_cls->SetName("Limit68CLs");
+  TGraphAsymmErrors *gr95_cls=new TGraphAsymmErrors(nMassSel,massSel,medianDSel,0,0,down95errSel,up95errSel);
+  gr95_cls->SetName("Limit95CLs");
+
+  TGraphAsymmErrors *grthSM=new TGraphAsymmErrors(nMassEff1,mass1,ggxs,0,0,ggxs_downerr,ggxs_uperr);//ggxs_downerr,ggxs_uperr);
+  grthSM->SetName("SMXSection");
+  TGraphAsymmErrors *grthSM4g=new TGraphAsymmErrors(nMassEff1,mass1,ggxs4g,0,0,ggxs4g_downerr,ggxs4g_uperr);
+  grthSM4g->SetName("SM4gXSection");
+
+  // cout<<"Plotting"<<endl;
+  TCanvas *cMCMC=new TCanvas("c_lim_MCMC","canvas with limits for MCMC",630,600);
+  cMCMC->cd();
+  cMCMC->SetGridx(1);
+  cMCMC->SetGridy(1);
+  // draw a frame to define the range
+  double fr_left=190.0, fr_down=0.09,fr_right=610.0,fr_up=8.0;
+  TH1F *hr = cMCMC->DrawFrame(fr_left,fr_down,fr_right,fr_up,"frame1");
+  hr->SetXTitle("m_{H} [GeV]");
+  hr->SetYTitle("#sigma_{95%} #times BR(H #rightarrow ZZ) [pb]");// #rightarrow 2l2q
+  // cMCMC->GetFrame()->SetFillColor(21);
+  //cMCMC->GetFrame()->SetBorderSize(12);
+  
+  gr95_cls->SetFillColor(kYellow);
+  gr95_cls->SetFillStyle(1001);//solid
+  gr95_cls->GetXaxis()->SetTitle("m_{H} [GeV]");
+  gr95_cls->GetYaxis()->SetTitle("#sigma_{95%} #times BR(H #rightarrow ZZ) [pb]");// #rightarrow 2l2q
+  gr95_cls->GetXaxis()->SetRangeUser(200.0,600.0);
+  
+  gr95_cls->Draw("3");
+  
+  gr68_cls->SetFillColor(kGreen);
+  gr68_cls->SetFillStyle(1001);//solid
+  gr68_cls->Draw("3same");
+  grmedian_cls->GetXaxis()->SetTitle("m_{H} [GeV]");
+  grmedian_cls->GetYaxis()->SetTitle("#sigma_{95%} #times BR(H #rightarrow ZZ) [pb]");// #rightarrow 2l2q
+  grmedian_cls->SetMarkerStyle(24);//25=hollow squre
+  grmedian_cls->SetMarkerColor(kBlack);
+  grmedian_cls->SetLineStyle(2);
+  grmedian_cls->SetLineWidth(2);
+  grmedian_cls->SetMinimum(0.0);
+  grmedian_cls->SetMaximum(8.0);
+ 
+  grobslim_cls->SetMarkerColor(kBlack);
+  grobslim_cls->SetMarkerStyle(21);//24=hollow circle
+  //  grobslim_cls->SetMarkerSize(1.5);
+  grobslim_cls->SetLineStyle(1);
+  grobslim_cls->SetLineWidth(2);
+
+
+  
+  grthSM->SetLineColor(kRed);
+  grthSM->SetLineWidth(2);
+  grthSM->SetFillColor(kRed);
+  grthSM->SetFillStyle(3344);
+  grthSM->Draw("L3same");
+
+  grthSM4g->SetLineColor(kRed);
+  grthSM4g->SetLineWidth(2);
+  grthSM4g->SetLineStyle(2);
+  grthSM4g->SetFillColor(kRed);
+  grthSM4g->SetFillStyle(3353);
+  grthSM4g->Draw("L3same");
+
+  grmedian_cls->Draw("L");
+  grobslim_cls->Draw("LP");
+
+  //draw grid on top of limits
+  gStyle->SetOptStat(0);
+  TH1D* postGrid = new TH1D("postGrid","",1,fr_left,fr_right);
+  postGrid->GetYaxis()->SetRangeUser(fr_down,fr_up);
+  postGrid->Draw("AXIGSAME");
+
+  TLine *l1=new TLine();
+  l1->SetLineStyle(1);
+  l1->SetLineWidth(2.0);
+  l1->SetLineColor(kRed);
+  //  l1->DrawLine(200.0,1.0,600.0,1.0);
+  cMCMC->Update();
+  // cMCMC->RedrawAxis("");
+  gPad->RedrawAxis("");
+  // hr->GetYaxis()->DrawClone();
+  cMCMC->Update();
+  
+
+  //more graphics
+  TLegend *leg = new TLegend(.35,.71,.90,.9);
+   leg->SetFillColor(0);
+   leg->SetShadowColor(0);
+   leg->SetTextFont(42);
+   leg->SetTextSize(0.03);
+   //   leg->SetBorderMode(0);
+  
+   /*
+   leg->AddEntry(grobslim_cls, "CL_{S} Observed", "LP");
+   leg->AddEntry(gr68_cls, "CL_{S} Expected #pm 1#sigma", "LF");
+   leg->AddEntry(gr95_cls, "CL_{S} Expected #pm 2#sigma", "LF");
+   */
+   leg->AddEntry(grobslim_cls, "Bayesian Observed", "LP");
+   leg->AddEntry(gr68_cls, "Bayesian Expected #pm 1#sigma", "LF");
+   leg->AddEntry(gr95_cls, "Bayesian Expected #pm 2#sigma", "LF");
+   leg->AddEntry(grthSM, "#sigma(pp#rightarrow H) x BR(H #rightarrow ZZ), SM", "L");// #rightarrow 2l2q
+   leg->AddEntry(grthSM4g, "#sigma(pp#rightarrow H) x BR(H #rightarrow ZZ), SM4", "L"); //#rightarrow 2l2q
+   leg->Draw();
+
+ if(useNewStyle){
+
+     TPaveText* cmslabel = new TPaveText( 0.152, 0.953, 0.8, 0.975, "brNDC" );
+     cmslabel->SetFillColor(kWhite);
+     cmslabel->SetTextSize(0.038);
+     cmslabel->SetTextAlign(11);
+     cmslabel->SetTextFont(62);
+     cmslabel->SetBorderSize(0);
+
+     //     cmslabel->AddText("CMS Preliminary 2011, ");
+     cmslabel->AddText(Form("CMS Preliminary 2011, %.1f fb^{-1}",intLumi) );
+     cmslabel->Draw();
+
+     TPaveText* label_sqrt = new TPaveText(0.75,0.955,1.04,0.988, "brNDC");
+     label_sqrt->SetFillColor(kWhite);
+     label_sqrt->SetTextSize(0.038);
+     label_sqrt->SetTextFont(42);
+     label_sqrt->AddText("#sqrt{s} = 7 TeV");
+     label_sqrt->SetBorderSize(0);
+     label_sqrt->Draw();
+   }
+   else{
+
+   TLatex * latex = new TLatex();
+   latex->SetNDC();
+   latex->SetTextSize(0.04);
+   latex->SetTextAlign(31);
+   latex->SetTextAlign(11); // align left 
+   latex->DrawLatex(0.18, 0.96, "CMS preliminary 2011");
+   latex->DrawLatex(0.60,0.96,Form("%.1f fb^{-1} at #sqrt{s} = 7 TeV",intLumi));
+   
+   }
+   
+   TLine *l1b=new TLine();
+   l1b->SetLineStyle(1);
+   l1b->SetLineWidth(2.0);
+   l1b->SetLineColor(kRed);
+   //l1b->DrawLine(200.0,1.0,600.0,1.0);
+   cMCMC->Update();
+   
+   
+   // cMCMC->RedrawAxis("");
+   gPad->RedrawAxis("");
+   // hr->GetYaxis()->DrawClone();
+   cMCMC->Update();
+   cMCMC->SaveAs("ClsLimitXSECT_MCMC_1fb.root");
+   cMCMC->SaveAs("ClsLimitXSECT_MCMC_1fb.eps");
+   // cMCMC->SaveAs("ClsLimit_1fb.png");
+   
+}//end main
+
+
+void smoothing(double* in_centr,double* in_err, int np, bool up){
+//void smoothing(double* in_array, int np){
+
+  double mysign=up? +1.0 : -1.0;
+  for(int i=0;i<np;i++){
+    if(i==0||i==np-1)continue;
+
+    double v0=in_centr[i-1]+mysign*in_err[i-1];
+    double v1=in_centr[i]+mysign*in_err[i];
+    double v2=in_centr[i+1]+mysign*in_err[i+1];
+
+    bool isMonotonic=false;
+    double diff1=v1-v0;
+    double diff2=v2-v1;
+    if(fabs(diff1)<0.05*v1)diff1=0.0;//against small fluctuations
+    if(fabs(diff2)<0.05*v1)diff2=0.0;
+
+    if( (diff1>=0.0 && diff2>=0.0) || (diff1<=0.0 && diff2<=0.0) ){//monotonically changing trend
+      isMonotonic=true;
+    }
+
+    double avg=(v0+v2)/2.0;
+    double reldiff=(v1-avg)/avg;
+
+    if(!isMonotonic && fabs(reldiff)>0.05){
+      //      cout<<"Mass #"<<i<<"  "<<in_centr[i] <<" ("<<v0 <<", "<<v1 <<", "<<v2 <<") smoothened from "<< v1<<" to "<<avg<<endl;
+      v1=avg;
+    }
+   in_err[i]=mysign*(v1-in_centr[i]);
+   // else  in_err[i]=in_centr[i];
+  }
+
+}
+
+
+void getSigmaBands(string fileName){
+  cout<<"\n\nAnalyzing file "<<fileName.c_str()<<endl;
+  TFile *f = new TFile(fileName.c_str());
+
+  TTree* t = (TTree* ) f->Get("limit");
+  if(!t){
+      cout<<"TTree named limit DOES NOT EXIST ! (expected TTree)"<<endl;
+      return;
+  }
+
+  double limit;
+  int ntoys = t->GetEntries();
+  t->SetBranchAddress("limit",&limit);
+
+  TH1D *h = new TH1D("h","h",2000,0,15);
+
+  for(int iEvt=0; iEvt<t->GetEntries(); iEvt++){
+
+    t->GetEntry(iEvt);
+
+    h->Fill(limit);
+
+  }
+
+  int sum=0;
+  int iBin=0;
+  while (sum<ntoys*.025 && iBin<2000){
+    iBin++;
+    sum+=h->GetBinContent(iBin);
+    
+  }
+  double low95p= (double)iBin*15.0/2000.0;
+  //  cout << "lower 95%: " <<low95p << endl;
+  v_95l.push_back(low95p);
+
+
+  sum=0;
+  iBin=2001;
+  while (sum<ntoys*.025 && iBin>0){
+    iBin--;
+    sum+=h->GetBinContent(iBin);
+
+  }
+  double up95p= (double)iBin*15.0/2000.0;
+  // cout << "upper 95%: " <<up95p  << endl;
+  v_95h.push_back(up95p);
+
+  sum=0;
+  iBin=0;
+  while (sum<ntoys*.16 && iBin<2000){
+    iBin++;
+    sum+=h->GetBinContent(iBin);
+
+  }
+  double low68p=(double)iBin*15/2000;
+  // cout << "lower 68%: " << low68p << endl;
+  v_68l.push_back(low68p);
+
+  sum=0;
+  iBin=2001;
+  while (sum<ntoys*.16 && iBin>0){
+    iBin--;
+    sum+=h->GetBinContent(iBin);
+
+  }
+  double up68p=(double)iBin*15/2000;
+  // cout << "upper 68%: " << up68p << endl;
+  v_68h.push_back(up68p);
+
+
+ sum=0;
+ iBin=2001;
+ while (sum<ntoys*.5 && iBin>0){
+   iBin--;
+   sum+=h->GetBinContent(iBin);
+   
+ }
+ double medianp=(double)iBin*15/2000;
+ // cout << "median: " << medianp << endl;
+ v_median.push_back(medianp);
+
+ delete t;
+ delete f;
+
+}
+
+
+int checkFileExistence( string filename ){
+
+  
+  //#include <sys/stat.h>
+  struct stat buffer ;
+  if ( stat( filename.c_str(), &buffer ) ) return 1 ;
+  return 0 ;
+  
+
+}
+void setFPStyle(){
+
+
+  gStyle->SetPadBorderMode(0);
+  gStyle->SetFrameBorderMode(0);
+  gStyle->SetPadBottomMargin(0.12);
+  gStyle->SetPadLeftMargin(0.12);
+  gStyle->SetCanvasColor(kWhite);
+  gStyle->SetCanvasDefH(600); //Height of canvas
+  gStyle->SetCanvasDefW(600); //Width of canvas
+  gStyle->SetCanvasDefX(0);   //POsition on screen
+  gStyle->SetCanvasDefY(0);
+  gStyle->SetPadTopMargin(0.05);
+  gStyle->SetPadBottomMargin(0.15);//0.13);
+  gStyle->SetPadLeftMargin(0.15);//0.16);
+  gStyle->SetPadRightMargin(0.05);//0.02);
+
+  gStyle->SetAxisColor(1, "XYZ");
+  gStyle->SetStripDecimals(kTRUE);
+  gStyle->SetTickLength(0.03, "XYZ");
+  gStyle->SetNdivisions(510, "XYZ");
+  gStyle->SetPadTickX(1);  // To get tick marks on the opposite side of the frame
+  gStyle->SetPadTickY(1);
+  gStyle->SetTitleColor(1, "XYZ");
+  gStyle->SetTitleFont(42, "XYZ");
+  gStyle->SetTitleSize(0.05, "XYZ");
+  // gStyle->SetTitleXSize(Float_t size = 0.02); // Another way to set the size?
+  // gStyle->SetTitleYSize(Float_t size = 0.02);
+  gStyle->SetTitleXOffset(1.15);//0.9);
+  gStyle->SetTitleYOffset(1.3); // => 1.15 if exponents
+  gStyle->SetLabelColor(1, "XYZ");
+  gStyle->SetLabelFont(42, "XYZ");
+  gStyle->SetLabelOffset(0.007, "XYZ");
+  gStyle->SetLabelSize(0.045, "XYZ");
+
+  gStyle->SetPadBorderMode(0);
+  gStyle->SetFrameBorderMode(0);
+  gStyle->SetTitleTextColor(1);
+  gStyle->SetTitleFillColor(10);
+  gStyle->SetTitleFontSize(0.05);
+  
+}

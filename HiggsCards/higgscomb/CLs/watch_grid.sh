@@ -33,7 +33,7 @@ for d in crab_0_*; do
         $bl{$s}=1 if $e;
     } 
     $blc = "";
-    if (scalar(keys(%bl))) { $blc = " -GRID.ce_black_list  " . join(",", keys(%bl))  }
+    if (scalar(keys(%bl))) { $blc = " -GRID.ce_black_list  fnal.gov," . join(",", keys(%bl))  }
     print "-resubmit " . join(",",@a) . " $blc\n"' status.$d);
     fi;
     
@@ -50,7 +50,7 @@ for d in crab_0_*; do
         $bl{$s}=1 if $e;
     } 
     $blc = "";
-    if (scalar(keys(%bl))) { $blc = " -GRID.ce_black_list  " . join(",", keys(%bl))  }
+    if (scalar(keys(%bl))) { $blc = " -GRID.ce_black_list  fnal.gov," . join(",", keys(%bl))  }
     print "-forceResubmit " . join(",",@a) . " $blc\n"' status.$d);
 #	    echo "Crab options: $CRAB_OPT"
 	    crab -c $d $CRAB_OPT 
