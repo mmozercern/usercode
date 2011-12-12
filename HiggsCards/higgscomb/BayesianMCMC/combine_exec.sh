@@ -2,7 +2,7 @@
 
 myrand=$1
 mass=$2
-OUTDIR=datacards_2l2j_HighMass_Winter11_Commit_XSEC
+OUTDIR=datacards_2l2j_HighMass_Winter11_Commit_newBsyst
 echo "Starting HiggsCombination with seed=$myrand at $( date +%c ) on $hostname."
 
 startdir=$( pwd )
@@ -43,7 +43,7 @@ echo "Datacard: $datacard"
 #combine -M $algo -n $label -m 400 -s $myrand -t $ntoys -U  -d $WORKDIR/$datacard --freq --singlePoint 1
 
 #if algo="Asymptotic"
-#combine -M "Asymptotic" -n $label -m $mass  -s $myrand    -d $WORKDIR/"${datacard}.txt" 
+combine -M "Asymptotic" -n $label -m $mass  -s $myrand -d $WORKDIR/"${datacard}.txt" -U -t $ntoys
 
 #if algo="ProfileLikelihood"
 combine -M "ProfileLikelihood" -n $label -m $mass  -s $myrand  -d $WORKDIR/"${datacard}.txt" -U  -t $ntoys

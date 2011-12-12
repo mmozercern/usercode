@@ -1,6 +1,6 @@
 #! /bin/bash
 
-NMAXJOBS=40
+NMAXJOBS=100
 mass=$1
 queue="dummyqueue"
 OUTDIR="./"
@@ -9,7 +9,7 @@ if [ $# -gt 1 ]
 then
     queue=$2
 else
-    queue=8nh
+    queue=1nd
 fi
 
 ijob=1
