@@ -9,6 +9,17 @@
 #include "TFile.h"
 #include "TROOT.h"
 
+
+////////////
+//Procedure:
+//#1 ./mergeCombinationTrees.sh
+//#2 ./mergeHarvestedCombinationTrees.sh
+//#3 ./harvestMCMC
+
+//fileName: TOTAL file with TOTAL merged output of combination
+//fileMassesName: text file with list of mass points
+//fileNameObs: TOTAL file with merged output of combination (for Observed limit)
+
 void harvestMCMC(string fileName, string fileMassesName,string fileNameObs="dummy"){
  
   cout<<"\n\nAnalyzing file "<<fileName.c_str()<<"  at MassFile = "<< fileMassesName.c_str()<<endl;
@@ -22,24 +33,24 @@ void harvestMCMC(string fileName, string fileMassesName,string fileNameObs="dumm
 
   TFile *fobs=0;TTree *tobs=0;
   double limitobs, mhobs; float quantobs;
- if(fileNameObs!="dummy"){
-   cout<<"Reading in also observed MCMC limits from "<<fileNameObs.c_str()<<endl;
-   fobs=new TFile(fileNameObs.c_str(),"READ");
-   tobs = (TTree* ) fobs->Get("limit");
-   //  int ntoys = t->GetEntries();
-   tobs->SetBranchAddress("mh",&mhobs);
-   tobs->SetBranchAddress("limit",&limitobs);
-   tobs->SetBranchAddress("quantileExpected",&quantobs);
- }
-
-
+  if(fileNameObs!="dummy"){
+    cout<<"Reading in also observed MCMC limits from "<<fileNameObs.c_str()<<endl;
+    fobs=new TFile(fileNameObs.c_str(),"READ");
+    tobs = (TTree* ) fobs->Get("limit");
+    //  int ntoys = t->GetEntries();
+    tobs->SetBranchAddress("mh",&mhobs);
+    tobs->SetBranchAddress("limit",&limitobs);
+    tobs->SetBranchAddress("quantileExpected",&quantobs);
+  }
+  
+  
   ifstream fMasses(fileMassesName.c_str(),ios::in);
   double M=0;
 
   double mhnew, quantnew,limitnew;
   const double quant95=0.025, quant68=0.16,quant50=0.5;
   const double quant95down=quant95,quant95up=1-quant95,quant68down=quant68,quant68up=1-quant68;
-  TFile *fout=new TFile("higgsCombineHZZ2L2Q_MCMC.exp.SM.root","RECREATE");
+  TFile *fout=new TFile("higgsCombineGrav2L2Q_MCMC.exp.RSGrav05.20120209.root","RECREATE");
   fout->cd();
   TTree *tout=new TTree("limit","Harvested limits");
   tout->Branch("limit",&limitnew,"limit/D");
@@ -60,9 +71,9 @@ void harvestMCMC(string fileName, string fileMassesName,string fileNameObs="dumm
       if(mh==M){
 	ntoys++;
 	h->Fill(limit);
-	if(M==600.0){ 
-	  // cout<<"M=600: limit list"<<endl;
-	  //	  cout<<"   "<<limit<<flush;
+	if(M>=550.0){ 
+	  cout<<"M=600: limit list"<<endl;
+	  cout<<"   "<<limit<<flush;
 	}
       }
     }//end loop on tree entries

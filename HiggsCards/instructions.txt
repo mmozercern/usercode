@@ -1,3 +1,16 @@
+#######################################
+##
+## WARNING !!!!!!!!!!!!!!
+##
+## THE LATEST AND MOST REFINED VERSION OF THE SCRIPTS/MACROS
+## IS IN THE DIR higsscomb/ . THAT CONTAINS THE VERSION
+## ALSO USED FOR THE FINAL PLOTS FOR HTE HIG-11-027 PAPER
+## THE INSTRUCTIONS IN THIS FILE ARE OLDISH BUT MOSTLY HOLD
+## (IN PARTICULAR FOR THE MCMC CALCULATION)
+##
+#######################################
+
+
 TO RUN BAYESIAN LIMITS ON LSF QUEUE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

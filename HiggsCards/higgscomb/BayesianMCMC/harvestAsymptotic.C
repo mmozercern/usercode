@@ -27,7 +27,7 @@ void harvestAsymptotic(string fileName, string fileMassesName){
   double mhnew, quantnew,limitnew;
   const double quant95=0.025, quant68=0.16,quant50=0.5;
   const double quant95down=quant95,quant95up=1-quant95,quant68down=quant68,quant68up=1-quant68;
-  TFile *fout=new TFile("higgsCombineHZZ2L2Q_Asymptotic.SM.root","RECREATE");
+  TFile *fout=new TFile("higgsCombineGrav2L2Q_Asymptotic.RSGrav05.root","RECREATE");
   fout->cd();
   TTree *tout=new TTree("limit","Harvested limits");
   tout->Branch("limit",&limitnew,"limit/D");

@@ -2,29 +2,30 @@
 
 myrand=$1
 mass=$2
-OUTDIR=datacards_2l2j_HighMass_Winter11_Commit_newBsyst
+OUTDIR=DataCards
 echo "Starting HiggsCombination with seed=$myrand at $( date +%c ) on $hostname."
 
 startdir=$( pwd )
 
 #set CMSSW environment
-RELDIR=/afs/cern.ch/user/b/bonato/scratch0/PhysAnalysis/CMGTools/CMSSW_4_2_3
+RELEASEDIR=/afs/cern.ch/user/b/bonato/scratch0/PhysAnalysis/devel/NewSpinPar/CMGTools/CMSSW_4_2_3/src/
 
 algo="MarkovChainMC"
 #algo="HybridNew"
 #algo="ProfileLikelihood"
 hint="ProfileLikelihood" # before the algo method, run the hint method for restricting integration field
-label="2l2q"
+label="Grav2l2q"
 ntoys=5
-WORKDIR=/afs/cern.ch/cms/CAF/CMSALCA/ALCA_TRACKERALIGN2/HIP/bonato/HtoZZto2L2J/${OUTDIR}/${mass}
-datacard="comb_hzz2l2q" #"counting-twochannel-2l2j.txt"  
+#WORKDIR=${RELEASEDIR}/HiggsAna/HLLJJCommon/test/fits//${OUTDIR}/${mass}
+WORKDIR=/afs/cern.ch/cms/CAF/CMSALCA/ALCA_TRACKERALIGN2/HIP/bonato/XtoZZto2L2J/${OUTDIR}/${mass}
+datacard="CMS_hzz2l2q_${mass}_6channels" #"counting-twochannel-2l2j.txt"  
 OUTDIR="combine_${label}_${algo}_"${datacard}
 
-cd $RELDIR
+cd $RELEASEDIR
 export SCRAM_ARCH=slc5_amd64_gcc434
 #cmsenv
 eval `scramv1 runtime -sh`
-cd $curdir
+cd $startdir
 
 TMPDIR="/tmp/$(whoami)"
 mkdir ${TMPDIR}/combine_${myrand}
@@ -42,8 +43,9 @@ echo "Datacard: $datacard"
 # if algo=HybridNew
 #combine -M $algo -n $label -m 400 -s $myrand -t $ntoys -U  -d $WORKDIR/$datacard --freq --singlePoint 1
 
-#if algo="Asymptotic"
-combine -M "Asymptotic" -n $label -m $mass  -s $myrand -d $WORKDIR/"${datacard}.txt" -U -t $ntoys
+#if algo="Asymptotic"  ###-t $ntoys
+combine -M "Asymptotic" -n $label -m $mass  -s $myrand -d $WORKDIR/"${datacard}.txt" -U 
+
 
 #if algo="ProfileLikelihood"
 combine -M "ProfileLikelihood" -n $label -m $mass  -s $myrand  -d $WORKDIR/"${datacard}.txt" -U  -t $ntoys

@@ -1,5 +1,6 @@
 #! /bin/bash
 
+startdir=$( pwd )
 NMAXJOBS=100
 mass=$1
 queue="dummyqueue"
@@ -20,7 +21,7 @@ do
   myrand=$RANDOM #random number generator (short integer: [0-32767])
   JOBNAME="combine_${myrand}"
   LOGFILE="log_batch_combine_${myrand}.out"
-  bsub -q $queue -J $JOBNAME -oo ${OUTDIR}/${mass}/$LOGFILE combine_exec.sh $myrand $mass
+  bsub -q $queue -J $JOBNAME -oo ${OUTDIR}/${mass}/$LOGFILE ${startdir}/combine_exec.sh $myrand $mass
   let ijob=ijob+1
 done
 
