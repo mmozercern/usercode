@@ -9,12 +9,9 @@
 #include "TFile.h"
 #include "TROOT.h"
 
-
-////////////
-//Procedure:
 //#1 ./mergeCombinationTrees.sh
 //#2 ./mergeHarvestedCombinationTrees.sh
-//#3 ./harvestMCMC
+//#3 harvestMCMC
 
 //fileName: TOTAL file with TOTAL merged output of combination
 //fileMassesName: text file with list of mass points
@@ -50,7 +47,7 @@ void harvestMCMC(string fileName, string fileMassesName,string fileNameObs="dumm
   double mhnew, quantnew,limitnew;
   const double quant95=0.025, quant68=0.16,quant50=0.5;
   const double quant95down=quant95,quant95up=1-quant95,quant68down=quant68,quant68up=1-quant68;
-  TFile *fout=new TFile("higgsCombineGrav2L2Q_MCMC.exp.RSGrav05.20120209.root","RECREATE");
+  TFile *fout=new TFile("higgsCombineGrav2L2Q_MCMC.RSGrav05.root","RECREATE");
   fout->cd();
   TTree *tout=new TTree("limit","Harvested limits");
   tout->Branch("limit",&limitnew,"limit/D");

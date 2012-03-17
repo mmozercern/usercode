@@ -58,8 +58,8 @@ void plot_golfcourse_Graviton(){
   bool useNewStyle=true;
   if(useNewStyle)  setFPStyle();
 
-   TFile *fFREQ=new TFile("higgsCombineGrav2L2Q_MCMC.RSGrav05.root","READ");
-   // TFile *fFREQ=new TFile("higgsCombineGrav2L2Q_Asymptotic.RSGrav05.root","READ");
+  //  TFile *fFREQ=new TFile("higgsCombineGrav2L2Q_MCMC.RSGrav05.root","READ");
+  TFile *fFREQ=new TFile("higgsCombineGrav2L2Q_Asymptotic.RSGrav05.root","READ");
 
   TTree *t=(TTree*)fFREQ->Get("limit");
 
@@ -170,7 +170,7 @@ void plot_golfcourse_Graviton(){
     //protection against messed up jobs
     excl=false;
     if(v_68h.at(im)>=v_95h.at(im) || v_68l.at(im)<=v_95l.at(im) ){
-      cout<<"Point at M = "<<v_mh.at(im) <<" excluded"<<endl;
+      cout<<"Point at M = "<<v_mh.at(im) <<" excluded: "<<v_95l.at(im)<<"  "<<v_68l.at(im)<<"  "<<v_median.at(im)<<"  "<<v_68h.at(im)<<"  "<<v_95h.at(im)<< endl;
       nexcluded++;
       // continue;
       excl=true; 
@@ -346,9 +346,9 @@ void plot_golfcourse_Graviton(){
    leg->SetTextFont(42);
    leg->SetTextSize(0.027);
    //   leg->SetBorderMode(0);
-   leg->AddEntry(grobslim_cls, "Bayesian MCMC Observed", "LP");
-   leg->AddEntry(gr68_cls, "Bayesian MCMC  Expected #pm 1#sigma", "LF");
-   leg->AddEntry(gr95_cls, "Bayesian MCMC  Expected #pm 2#sigma", "LF");
+   leg->AddEntry(grobslim_cls, "Asympt. CL_{S} Observed", "LP");
+   leg->AddEntry(gr68_cls, "Asympt. CL_{S}  Expected #pm 1#sigma", "LF");
+   leg->AddEntry(gr95_cls, "Asympt. CL_{S}  Expected #pm 2#sigma", "LF");
    //  leg->AddEntry(grthSM, "#sigma(pp#rightarrow RSG) x BR(G #rightarrow ZZ), c=0.05", "LF");// #rightarrow 2l2q
    // leg->AddEntry(grthSM10, "#sigma(pp#rightarrow RSG) x BR(G #rightarrow ZZ), c=0.10", "LF");// #rightarrow 2l2q
    leg->AddEntry(grthSM, "#sigma_{th} x BR, c=0.05", "LF");// #rightarrow 2l2q
@@ -405,21 +405,14 @@ void plot_golfcourse_Graviton(){
    gPad->RedrawAxis("");
    // hr->GetYaxis()->DrawClone();
    cMCMC->Update();
-   cMCMC->SaveAs("Grav2l2q_UL_MCMC.root");
-   cMCMC->SaveAs("Grav2l2q_UL_MCMC.eps");
-   cMCMC->SaveAs("Grav2l2q_UL_MCMC.pdf");
-   cMCMC->SaveAs("Grav2l2q_UL_MCMC.png");
+   cMCMC->SaveAs("Grav2l2q_UL_Asymptotic.root");
+   cMCMC->SaveAs("Grav2l2q_UL_Asymptotic.eps");
+   cMCMC->SaveAs("Grav2l2q_UL_Asymptotic.png");
    gPad->SetLogy();
-   cMCMC->SaveAs("Grav2l2q_UL_MCMC_log.eps");
-   cMCMC->SaveAs("Grav2l2q_UL_MCMC_log.pdf");
-   cMCMC->SaveAs("Grav2l2q_UL_MCMC_log.png");
+   cMCMC->SaveAs("Grav2l2q_UL_Asymptotic_log.eps");
+   cMCMC->SaveAs("Grav2l2q_UL_Asymptotic_log.png");
   // cMCMC->SaveAs("ClsLimit_1fb.png");
-
-   TFile *fout=new TFile("MCMC_graph.root","RECREATE");
-   fout->cd();
-   grobslim_cls->Write();
-   fout->Close();
-
+   
 }//end main
 
 void setFPStyle(){

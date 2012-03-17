@@ -1,10 +1,12 @@
 #! /bin/bash
 
 startdir=$( pwd )
-NMAXJOBS=100
+NMAXJOBS=30
 mass=$1
 queue="dummyqueue"
 OUTDIR="./"
+LOGDIRNAME="logs"
+mkdir -p ${OUTDIR}/${mass}/${LOGDIRNAME}
 
 if [ $# -gt 1 ]
 then
@@ -20,7 +22,7 @@ while [ $ijob -le $NMAXJOBS ]
 do
   myrand=$RANDOM #random number generator (short integer: [0-32767])
   JOBNAME="combine_${myrand}"
-  LOGFILE="log_batch_combine_${myrand}.out"
+  LOGFILE="${LOGDIRNAME}/log_batch_combine_${myrand}.out"
   bsub -q $queue -J $JOBNAME -oo ${OUTDIR}/${mass}/$LOGFILE ${startdir}/combine_exec.sh $myrand $mass
   let ijob=ijob+1
 done

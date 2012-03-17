@@ -414,12 +414,7 @@ void plot_golfcourse_Graviton(){
    cMCMC->SaveAs("Grav2l2q_UL_MCMC_log.pdf");
    cMCMC->SaveAs("Grav2l2q_UL_MCMC_log.png");
   // cMCMC->SaveAs("ClsLimit_1fb.png");
-
-   TFile *fout=new TFile("MCMC_graph.root","RECREATE");
-   fout->cd();
-   grobslim_cls->Write();
-   fout->Close();
-
+   
 }//end main
 
 void setFPStyle(){

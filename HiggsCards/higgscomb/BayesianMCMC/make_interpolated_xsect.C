@@ -104,7 +104,7 @@ void make_interpolated_xsect(string inf, string outf){
   // gr_xs->Fit(fitfunc2,"W+");
   // gr_xs->Fit(fitfunc3,"W+");
 
-  float m_arr2[nM*4],xs_arr2[nM*4],xs_arr3[nM*4];
+  float m_arr2[nM*2],xs_arr2[nM*2],xs_arr3[nM*2];
  
   for(int i=0;i<nM-1;i++){
     double deltaM=0.0;
@@ -112,22 +112,22 @@ void make_interpolated_xsect(string inf, string outf){
     // else deltaM=0.0;
     deltaM=v_mh.at(i+1)-v_mh.at(i);
     for(int j=0;j<4;j++){
-    m_arr2[i*4+j]=v_mh.at(i)+j*deltaM/4.0;
+    m_arr2[i*2+j]=v_mh.at(i)+j*deltaM/2.0;
     double newXS=0.0;
-    expo_interpolation(v_mh.at(i),v_mh.at(i+1),  v_xs.at(i), v_xs.at(i+1),m_arr2[i*4+j] , newXS);    
-    xs_arr2[i*4+j]=newXS;
+    expo_interpolation(v_mh.at(i),v_mh.at(i+1),  v_xs.at(i), v_xs.at(i+1),m_arr2[i*2+j] , newXS);    
+    xs_arr2[i*2+j]=newXS;
     
 
 
-    xs_arr3[i*4+j]= linear_interp(v_xs.at(i+1),v_xs.at(i), m_arr2[i*4+j] ,v_mh.at(i+1),v_mh.at(i));
+    xs_arr3[i*2+j]= linear_interp(v_xs.at(i+1),v_xs.at(i), m_arr2[i*2+j] ,v_mh.at(i+1),v_mh.at(i));
     }
   }
- TGraph *gr_xs2=new TGraph(nM*4,m_arr2,xs_arr2);
+ TGraph *gr_xs2=new TGraph(nM*2,m_arr2,xs_arr2);
   gr_xs2->SetName("rs_grav_xsect_EXPINTERPOL");
   gr_xs2->SetMarkerColor(kViolet);
   gr_xs2->SetMarkerStyle(21);
 
-  TGraph *gr_xs3=new TGraph(nM*4,m_arr2,xs_arr3);
+  TGraph *gr_xs3=new TGraph(nM*2,m_arr2,xs_arr3);
   gr_xs3->SetName("rs_grav_xsect_LININTERPOL");
   gr_xs3->SetMarkerColor(kGreen+3);
   gr_xs3->SetMarkerStyle(23);
@@ -183,8 +183,8 @@ void make_interpolated_xsect(string inf, string outf){
     if(!found)cout<<" MASS NOT FOUND !!! "<<flush;
     double newXS=-99.0;
     const double fbTopb=1000.0;
-    //  expo_interpolation(v_mh.at(im),v_mh.at(im+1),  v_xs.at(im), v_xs.at(im+1),mm , newXS);
-    newXS= linear_interp(v_xs.at(im+1),v_xs.at(im), mm ,v_mh.at(im+1),v_mh.at(im));
+    expo_interpolation(v_mh.at(im),v_mh.at(im+1),  v_xs.at(im), v_xs.at(im+1),mm , newXS);
+     // newXS= linear_interp(v_xs.at(im+1),v_xs.at(im), mm ,v_mh.at(im+1),v_mh.at(im));
     outfile<<mm<<"\t"<<newXS/fbTopb<<endl;
     //    cout<<mm<<"\t"<<newXS<<endl;
   }//end loop on masses in mfile

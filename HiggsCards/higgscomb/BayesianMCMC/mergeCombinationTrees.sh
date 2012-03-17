@@ -46,6 +46,6 @@ hadd ${MASS}/$DIR/${STEMEXP}"TOTAL.root" $LISTFILES_EXP
 hadd ${MASS}/$DIR/${STEMOBS}"TOTAL.root" $LISTFILES_OBS
 hadd ${MASS}/$DIR/${STEMASYMPT}"TOTAL.root" $LISTFILES_ASYMPT
 
-mkdir harvested_20120209/
-cp ${MASS}/$DIR/*"TOTAL.root" harvested_20120209/
+mkdir harvestedTrees/
+cp ${MASS}/$DIR/*"TOTAL.root" harvestedTrees/
 

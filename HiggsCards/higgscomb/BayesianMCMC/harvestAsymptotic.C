@@ -27,7 +27,7 @@ void harvestAsymptotic(string fileName, string fileMassesName){
   double mhnew, quantnew,limitnew;
   const double quant95=0.025, quant68=0.16,quant50=0.5;
   const double quant95down=quant95,quant95up=1-quant95,quant68down=quant68,quant68up=1-quant68;
-  TFile *fout=new TFile("higgsCombineGrav2L2Q_Asymptotic.RSGrav05.root","RECREATE");
+  TFile *fout=new TFile("higgsCombineGrav2L2Q_Asymptotic.RSGrav05.0b.root","RECREATE");
   fout->cd();
   TTree *tout=new TTree("limit","Harvested limits");
   tout->Branch("limit",&limitnew,"limit/D");
@@ -39,14 +39,14 @@ void harvestAsymptotic(string fileName, string fileMassesName){
     fMasses>>M;
     cout<<"\n\n----------\nMASS = "<<M<<endl;
     int nBins=30000;
-    double maxBin=30.0;
+    double maxBin=75.0;
     TH1D *hOBS = new TH1D("hobs","hobs",nBins,0,maxBin);
     TH1D *h95down = new TH1D("h95down","h95down",nBins,0,maxBin);
     TH1D *h95up = new TH1D("h95up","h95up",nBins,0,maxBin);
     TH1D *h68down = new TH1D("h68down","h68down",nBins,0,maxBin);
     TH1D *h68up = new TH1D("h68up","h68up",nBins,0,maxBin);
     TH1D *hMedian = new TH1D("hmedian","hmedian",nBins,0,maxBin);
-
+    int c=0;
     for(int iEvt=0; iEvt<t->GetEntries(); iEvt++){
     
       t->GetEntry(iEvt);
@@ -54,24 +54,25 @@ void harvestAsymptotic(string fileName, string fileMassesName){
 	
 	if(quant==-1.0)hOBS->Fill(limit);
 	else if(double(quant)>=quant95down*0.99 && double(quant)<=quant95down*1.01     )h95down->Fill(limit);
-	else if(double(quant)>=quant95up*0.99 && double(quant)<=quant95up*1.01  )h95up->Fill(limit);
+	else if(double(quant)>=quant95up*0.98 && double(quant)<=quant95up*1.02  )h95up->Fill(limit);
 	else if(quant>=quant68down*0.99 && double(quant)<=quant68down*1.01  )h68down->Fill(limit);
 	else if(quant>=quant68up*0.99 && double(quant)<=quant68up*1.01  )h68up->Fill(limit);
 	else if(quant>=quant50*0.99 && double(quant)<=quant50*1.01  )hMedian->Fill(limit);
 	else{cout<<"Warning: m_H= "<<mh<<"  Quantile = "<<quant<<"  Limit = "<<limit<<endl;}
+	c++;
       }
  
    }//end loop on tree entries
-    cout<<endl;
+    cout<<"  Filled "<<c<<endl;
     double low95p= (double)h95down->GetMean();
-    cout << "lower 95%: " <<low95p << endl;
+    cout << "lower 95%: " <<low95p  <<"  "<<h95down->GetEntries()<< endl;
     limitnew=low95p ;
     quantnew=quant95down;
     mhnew=M;
     tout->Fill();
 
   double up95p= (double)h95up->GetMean();
-  cout << "upper 95%: " <<up95p  << endl;
+  cout << "upper 95%: " <<up95p  <<"  "<<h95up->GetEntries()<< endl;
   limitnew=up95p ;
   quantnew=quant95up;
   mhnew=M;
@@ -79,28 +80,28 @@ void harvestAsymptotic(string fileName, string fileMassesName){
 
 
   double low68p= (double)h68down->GetMean();
-  cout << "lower 68%: " << low68p << endl;
+  cout << "lower 68%: " << low68p <<"  "<<h68down->GetEntries()<< endl;
   limitnew=low68p ;
   quantnew=quant68down;
   mhnew=M;
   tout->Fill();   
 
   double up68p=(double)h68up->GetMean();
-  cout << "upper 68%: " << up68p << endl;
+  cout << "upper 68%: " << up68p <<"  "<<h68up->GetEntries()<< endl;
   limitnew=up68p ;
   quantnew=quant68up;
   mhnew=M;
   tout->Fill();
 
   double medianp=(double)hMedian->GetMean();
-  cout << "median: " << medianp << endl;
+  cout << "median: " << medianp <<"  "<<hMedian->GetEntries()<< endl;
   limitnew=medianp ;
   quantnew=quant50;
   mhnew=M;
   tout->Fill();
 
   double obsp=(double)hOBS->GetMean();
-  cout << "observed: " << obsp << endl;
+  cout << "observed: " << obsp <<"  "<<hOBS->GetEntries()<< endl;
   limitnew=obsp ;
   quantnew=-1.0;
   mhnew=M;

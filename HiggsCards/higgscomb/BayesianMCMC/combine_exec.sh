@@ -2,7 +2,7 @@
 
 myrand=$1
 mass=$2
-OUTDIR=DataCards
+OUTDIR=DataCards_MZZ_SB375
 echo "Starting HiggsCombination with seed=$myrand at $( date +%c ) on $hostname."
 
 startdir=$( pwd )
@@ -15,10 +15,10 @@ algo="MarkovChainMC"
 #algo="ProfileLikelihood"
 hint="ProfileLikelihood" # before the algo method, run the hint method for restricting integration field
 label="Grav2l2q"
-ntoys=5
+ntoys=15
 #WORKDIR=${RELEASEDIR}/HiggsAna/HLLJJCommon/test/fits//${OUTDIR}/${mass}
 WORKDIR=/afs/cern.ch/cms/CAF/CMSALCA/ALCA_TRACKERALIGN2/HIP/bonato/XtoZZto2L2J/${OUTDIR}/${mass}
-datacard="CMS_hzz2l2q_${mass}_6channels" #"counting-twochannel-2l2j.txt"  
+datacard="CMS_hzz2l2q_${mass}_6channels" #"0b"
 OUTDIR="combine_${label}_${algo}_"${datacard}
 
 cd $RELEASEDIR
