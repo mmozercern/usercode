@@ -64,6 +64,7 @@ void TongguangReader::produce(edm::Event& iEvent, const edm::EventSetup&) {
 	  (*weight) = 0.;
 	  (*weightp) = 0.;
 	  (*weightm) = 0.;
+	  break;
 	}
 	    
    
