@@ -78,8 +78,8 @@ void TongguangReader::produce(edm::Event& iEvent, const edm::EventSetup&) {
 	}else{//linear interpolation
 	  lowindex--; // lower_bound finds the first element not smaller than X
 	  (*weight) = weight_[lowindex] +( m - bincenters_[lowindex] )*(weight_[lowindex+1]-weight_[lowindex])/(bincenters_[lowindex+1]-bincenters_[lowindex]) ;
-	  (*weightp) = weightP_[lowindex] +( m - bincenters_[lowindex] )*(weight_[lowindex+1]-weight_[lowindex])/(bincenters_[lowindex+1]-bincenters_[lowindex])  ;
-	  (*weightm) = weightM_[lowindex] +( m - bincenters_[lowindex] )*(weight_[lowindex+1]-weight_[lowindex])/(bincenters_[lowindex+1]-bincenters_[lowindex])  ;
+	  (*weightp) = weightP_[lowindex] +( m - bincenters_[lowindex] )*(weightP_[lowindex+1]-weightP_[lowindex])/(bincenters_[lowindex+1]-bincenters_[lowindex])  ;
+	  (*weightm) = weightM_[lowindex] +( m - bincenters_[lowindex] )*(weightM_[lowindex+1]-weightM_[lowindex])/(bincenters_[lowindex+1]-bincenters_[lowindex])  ;
 	}
 
 	//std::cout << m << " " << bincenters_[lowindex] << "  " << bincenters_[lowindex+1] << " " << (*weight)  <<std::endl;
