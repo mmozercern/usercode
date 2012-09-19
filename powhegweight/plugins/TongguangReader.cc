@@ -17,7 +17,7 @@ TongguangReader::TongguangReader(const edm::ParameterSet& iConfig):genpTag_(iCon
   std::ifstream ifs(filename_.c_str());
 
   while( ifs.good() ) {
-    ifs >> bincenter >> initial >> pow >> powp >>  powm >> out>> outp >> outm;
+    ifs >> bincenter >> initial >>  out >> outp >> outm;
     
     bincenters_.push_back(bincenter);
     if(initial > 0){
@@ -81,6 +81,10 @@ void TongguangReader::produce(edm::Event& iEvent, const edm::EventSetup&) {
 	  (*weightp) = weightP_[lowindex] +( m - bincenters_[lowindex] )*(weightP_[lowindex+1]-weightP_[lowindex])/(bincenters_[lowindex+1]-bincenters_[lowindex])  ;
 	  (*weightm) = weightM_[lowindex] +( m - bincenters_[lowindex] )*(weightM_[lowindex+1]-weightM_[lowindex])/(bincenters_[lowindex+1]-bincenters_[lowindex])  ;
 	}
+
+	//swap weights if necessary: 
+
+
 
 	//std::cout << m << " " << bincenters_[lowindex] << "  " << bincenters_[lowindex+1] << " " << (*weight)  <<std::endl;
 
